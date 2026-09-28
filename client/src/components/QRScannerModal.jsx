@@ -107,7 +107,7 @@ const QRScannerModal = ({ isOpen, onClose }) => {
         if (targetCode) {
             navigate(`/board/${targetCode}${searchParams}`);
         } else {
-            alert(t('qr.invalidQR', 'Geçersiz QR Kod. Lütfen geçerli bir EduBoard oda QR kodu taratın.'));
+            alert(t('qr.invalidQR', 'Geçersiz QR Kod. Lütfen geçerli bir Oxonom Edu oda QR kodu taratın.'));
         }
     };
 

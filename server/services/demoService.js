@@ -18,9 +18,9 @@ const Module = require('../models/Module');
 const SystemSetting = require('../models/SystemSetting');
 
 const DEMO_TEACHER_USERNAME = 'demo_ogretmen';
-const DEMO_TEACHER_EMAIL = 'demo@oxonomet.com';
+const DEMO_TEACHER_EMAIL = 'demo@oxonom.com';
 const DEMO_STUDENT_USERNAME = 'demo_ogrenci';
-const DEMO_STUDENT_EMAIL = 'demo_ogrenci@oxonomet.com';
+const DEMO_STUDENT_EMAIL = 'demo_ogrenci@oxonom.com';
 const DEMO_PASSWORD_PLAIN = 'Demo1234!';
 const DEMO_STUDENT_PASSWORD = 'Ogrenci123!';
 
@@ -965,7 +965,7 @@ async function seedDemoData() {
         const sData = studentsForClass[sIdx];
         const isDemoStud = !!sData.isDemoAccount;
         const studentUsername = isDemoStud ? DEMO_STUDENT_USERNAME : `ogrenci_${sData.num}`;
-        const studentEmail = isDemoStud ? DEMO_STUDENT_EMAIL : `ogrenci${sData.num}@oxonomet.com`;
+        const studentEmail = isDemoStud ? DEMO_STUDENT_EMAIL : `ogrenci${sData.num}@oxonom.com`;
         const initialPass = isDemoStud ? DEMO_PASSWORD_PLAIN : DEMO_STUDENT_PASSWORD;
 
         // Create auth user for student

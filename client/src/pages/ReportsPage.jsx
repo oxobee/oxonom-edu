@@ -107,7 +107,7 @@ const ReportsPage = () => {
         const dateStr = new Date().toLocaleDateString('tr-TR');
 
         doc.setFontSize(18);
-        doc.text(`EduBoard - ${className} Başarı ve Devam Raporu`, 14, 20);
+        doc.text(`Oxonom Edu - ${className} Başarı ve Devam Raporu`, 14, 20);
         doc.setFontSize(10);
         doc.text(`Tarih: ${dateStr} | Okul: ${reportData.classInfo?.schoolName || '—'}`, 14, 28);
         doc.line(14, 32, 196, 32);
@@ -165,7 +165,7 @@ const ReportsPage = () => {
 
         // 1. Özet Sheet
         const summaryData = [
-            ['Rapor Başlığı', 'EduBoard Sınıf Raporu'],
+            ['Rapor Başlığı', 'Oxonom Edu Sınıf Raporu'],
             ['Sınıf', reportData.classInfo?.name || ''],
             ['Okul', reportData.classInfo?.schoolName || ''],
             ['Tarih', new Date().toLocaleDateString('tr-TR')],

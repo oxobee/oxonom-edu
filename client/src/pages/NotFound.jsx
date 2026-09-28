@@ -72,7 +72,7 @@ const NotFound = () => {
               letterSpacing: "-0.01em",
             }}
           >
-            EduBoard
+            Oxonom Edu
           </span>
         </div>
 

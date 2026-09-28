@@ -4,7 +4,7 @@ const sections = [
   {
     title: "Introduction",
     content:
-      "Welcome to EduBoard. By accessing or using our platform, you agree to comply with these Terms of Service. Please read them carefully before using our services.",
+      "Welcome to Oxonom Edu. By accessing or using our platform, you agree to comply with these Terms of Service. Please read them carefully before using our services.",
   },
   {
     title: "User Responsibilities",
@@ -14,22 +14,22 @@ const sections = [
   {
     title: "Acceptable Usage",
     content:
-      "You agree not to misuse the platform, attempt unauthorized access, distribute harmful content, or violate applicable laws while using EduBoard.",
+      "You agree not to misuse the platform, attempt unauthorized access, distribute harmful content, or violate applicable laws while using Oxonom Edu.",
   },
   {
     title: "Privacy & Data Handling",
     content:
-      "EduBoard respects your privacy and handles your data securely. Information collected is used only to improve platform functionality and user experience.",
+      "Oxonom Edu respects your privacy and handles your data securely. Information collected is used only to improve platform functionality and user experience.",
   },
   {
     title: "Third-Party Services",
     content:
-      "Our platform may integrate with third-party tools or services. EduBoard is not responsible for the practices or policies of these external services.",
+      "Our platform may integrate with third-party tools or services. Oxonom Edu is not responsible for the practices or policies of these external services.",
   },
   {
     title: "Limitations of Liability",
     content:
-      "EduBoard is provided on an 'as is' basis. We are not liable for any direct, indirect, or incidental damages resulting from the use of our services.",
+      "Oxonom Edu is provided on an 'as is' basis. We are not liable for any direct, indirect, or incidental damages resulting from the use of our services.",
   },
   {
     title: "Termination Policy",
@@ -39,7 +39,7 @@ const sections = [
   {
     title: "Contact Information",
     content:
-      "If you have any questions regarding these Terms of Service, please contact the EduBoard support team.",
+      "If you have any questions regarding these Terms of Service, please contact the Oxonom Edu support team.",
   },
 ];
 
@@ -53,7 +53,7 @@ const TermsOfService = () => {
             Terms of Service
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Please read these terms carefully before using EduBoard services.
+            Please read these terms carefully before using Oxonom Edu services.
           </p>
         </div>
 

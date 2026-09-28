@@ -191,7 +191,7 @@ const Login = () => {
                             <div className="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
                                 <Sparkles className="w-4 h-4" />
                             </div>
-                            <span className="font-semibold text-xl text-foreground tracking-tight">EduBoard</span>
+                            <span className="font-semibold text-xl text-foreground tracking-tight">Oxonom Edu</span>
                         </div>
                         <div className="flex items-center gap-3">
                             <Link to="/" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -355,7 +355,7 @@ const Login = () => {
                                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
                                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                                <span className="text-[11px] font-mono text-slate-400 ml-2 font-medium">EduBoard Live Canvas</span>
+                                <span className="text-[11px] font-mono text-slate-400 ml-2 font-medium">Oxonom Edu Canlı Tahta</span>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -438,7 +438,7 @@ const Login = () => {
                                     <span>28 Öğrenci Katıldı</span>
                                 </div>
                                 <div className="flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-800 text-[10px] text-slate-400 font-mono">
-                                    <span>Oda: EDU-LIVE-8X</span>
+                                    <span>Oda: OXONOM-8X</span>
                                 </div>
                             </div>
                         </div>
@@ -467,7 +467,7 @@ const Login = () => {
                                 ? 'Sınıfına Bağlan, Tahtanı Canlı Takip Et!'
                                 : detectedRole === 'teacher' || detectedRole === 'admin'
                                 ? 'Öğretmen Paneli & İnteraktif Sınıf Yönetimi'
-                                : 'EduBoard İnteraktif Dijital Tahta'}
+                                : 'Oxonom Edu İnteraktif Dijital Tahta'}
                         </h3>
                         <p className="text-slate-400 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
                             Gerçek zamanlı iş birliği, akıllı çizim araçları ve ders materyalleriyle yeni nesil eğitim deneyimi.

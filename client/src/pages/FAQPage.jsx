@@ -19,7 +19,7 @@ export default function FAQPage() {
         <>
           Creating a whiteboard session is simple:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
-            <li>Sign up or log in to your Eduboard account.</li>
+            <li>Sign up or log in to your Oxonom Edu account.</li>
             <li>Click <strong>Dashboard</strong> from the navbar.</li>
             <li>Click <strong>New Board</strong>, give it a name and choose your subject.</li>
             <li>Your infinite canvas is ready - start drawing, annotating, or uploading!</li>
@@ -50,10 +50,10 @@ export default function FAQPage() {
       id: "qs-3",
       category: "getting-started",
       categoryLabel: "Getting Started",
-      question: "Is Eduboard free to use?",
+      question: "Is Oxonom Edu free to use?",
       answer: (
         <>
-          Yes! Eduboard offers a <strong>free plan</strong> for both teachers and students with access to core features - infinite canvas, real-time collaboration, drawing tools, and room codes. Premium features (advanced admin controls, export options, etc.) may be available in future plans.
+          Yes! Oxonom Edu offers a <strong>free plan</strong> for both teachers and students with access to core features - infinite canvas, real-time collaboration, drawing tools, and room codes. Premium features (advanced admin controls, export options, etc.) may be available in future plans.
         </>
       ),
     },
@@ -64,7 +64,7 @@ export default function FAQPage() {
       question: "How does real-time collaboration work?",
       answer: (
         <>
-          Eduboard uses <strong>WebSockets</strong> for real-time, bidirectional communication. Here's what that means for you:
+          Oxonom Edu uses <strong>WebSockets</strong> for real-time, bidirectional communication. Here's what that means for you:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
             <li>Every stroke, shape, or sticky note you draw appears on all participants' screens in milliseconds.</li>
             <li>You can see <strong>live cursors</strong> of all active users on the canvas.</li>
@@ -81,7 +81,7 @@ export default function FAQPage() {
       question: "How many students can join a single board?",
       answer: (
         <>
-          Eduboard supports <strong>unlimited participants</strong> on a single board. Whether it's a small group of 5 or a large class of 100+, everyone can collaborate simultaneously. Performance may vary based on your device and network speed with very large groups.
+          Oxonom Edu supports <strong>unlimited participants</strong> on a single board. Whether it's a small group of 5 or a large class of 100+, everyone can collaborate simultaneously. Performance may vary based on your device and network speed with very large groups.
         </>
       ),
     },
@@ -92,7 +92,7 @@ export default function FAQPage() {
       question: "Can teachers control what students can do on the board?",
       answer: (
         <>
-          Absolutely. Eduboard has a <strong>role-based access</strong> system:
+          Absolutely. Oxonom Edu has a <strong>role-based access</strong> system:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
             <li><strong>Teachers</strong> have full control - draw, erase, lock sections, manage permissions.</li>
             <li><strong>Students</strong> can draw and collaborate by default, but teachers can set boards to <em>view-only</em> mode for presentations.</li>
@@ -108,7 +108,7 @@ export default function FAQPage() {
       question: "How do I save my whiteboard?",
       answer: (
         <>
-          Eduboard <strong>auto-saves</strong> your board as you work - no manual save needed. You can also:
+          Oxonom Edu <strong>auto-saves</strong> your board as you work - no manual save needed. You can also:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
             <li>Access all your boards anytime from the <strong>Dashboard</strong>.</li>
             <li>Use the <strong>Export</strong> option (teacher accounts) to download the board as an image.</li>
@@ -154,10 +154,10 @@ export default function FAQPage() {
       id: "devices-1",
       category: "devices",
       categoryLabel: "Devices & Access",
-      question: "What devices and browsers does Eduboard support?",
+      question: "What devices and browsers does Oxonom Edu support?",
       answer: (
         <>
-          Eduboard is fully responsive and works on:
+          Oxonom Edu is fully responsive and works on:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
             <li><strong>Desktops/Laptops</strong> - Chrome, Firefox, Edge, Safari (latest versions).</li>
             <li><strong>Tablets</strong> - iPad, Android tablets (touch-friendly canvas).</li>
@@ -187,7 +187,7 @@ export default function FAQPage() {
         <>
           To reset your password:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
-            <li>Click <strong>"Sign In"</strong> on the Eduboard homepage.</li>
+            <li>Click <strong>"Sign In"</strong> on the Oxonom Edu homepage.</li>
             <li>Select <strong>"Forgot Password?"</strong> below the login form.</li>
             <li>Enter your registered email address.</li>
             <li>Check your inbox for a password reset link (valid for 24 hours).</li>
@@ -225,10 +225,10 @@ export default function FAQPage() {
       id: "account-4",
       category: "account",
       categoryLabel: "Account & Password",
-      question: "Is my data secure on Eduboard?",
+      question: "Is my data secure on Oxonom Edu?",
       answer: (
         <>
-          Yes. Eduboard takes data privacy seriously:
+          Yes. Oxonom Edu takes data privacy seriously:
           <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-400">
             <li>All data is transmitted over <strong>HTTPS</strong>.</li>
             <li>Passwords are hashed - never stored in plain text.</li>
@@ -285,7 +285,7 @@ export default function FAQPage() {
         </h1>
 
         <p className="text-slate-400 text-lg max-w-[620px] mx-auto mb-10 leading-relaxed relative z-10">
-          {t('faqPage.subtitle', 'EduBoard hakkında aklınıza takılabilecek tüm soruların yanıtları burada.')}
+          {t('faqPage.subtitle', 'Oxonom Edu hakkında aklınıza takılabilecek tüm soruların yanıtları burada.')}
         </p>
 
         {/* SEARCH BAR — FIX 3: FiSearch icon added */}
@@ -397,7 +397,7 @@ export default function FAQPage() {
             Still have questions?
           </h2>
           <p className="text-slate-400 text-lg mb-8 max-w-lg mx-auto">
-            Our support team is happy to help you get started with Eduboard.
+            Our support team is happy to help you get started with Oxonom Edu.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             {/* FIX: <a> ki jagah <Link> use kiya */}

@@ -35,7 +35,7 @@ router.post('/', contactLimiter, async (req, res) => {
         // Owner ke existing email service ko use karke mail bhejna
         const result = await sendContactFormEmail(
             process.env.ADMIN_EMAIL, // Admin (yaani tumhe) mail aayega
-            safeSubject ? `[EduBoard Contact] ${safeSubject}` : `[EduBoard Contact] New message from ${safeName}`,
+            safeSubject ? `[Oxonom Edu Contact] ${safeSubject}` : `[Oxonom Edu Contact] New message from ${safeName}`,
             `Name: ${safeName}\nEmail: ${safeEmail}\n\nMessage:\n${safeMessage}`
         );
 

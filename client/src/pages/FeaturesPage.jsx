@@ -157,7 +157,7 @@ const FeaturesPage = () => {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className={`text-xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}
                     >
-                        {t('featuresPage.subtitle', 'EduBoard, etkileşimli öğrenmeyi kolaylaştıran gelişmiş çizim, paylaşım ve yönetim araçları sunar.')}
+                        {t('featuresPage.subtitle', 'Oxonom Edu, etkileşimli öğrenmeyi kolaylaştıran gelişmiş çizim, paylaşım ve yönetim araçları sunar.')}
                     </motion.p>
 
                     {/* Animated Stats */}
@@ -282,7 +282,7 @@ const FeaturesPage = () => {
                             {t('landing.ctaHeading', 'Sınıfınızı Dönüştürmeye Hazır mısınız?')}
                         </h2>
                         <p className={`text-xl mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için EduBoard kullanan binlerce eğitimci ve öğrenciye katılın.')}
+                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için Oxonom Edu kullanan binlerce eğitimci ve öğrenciye katılın.')}
                         </p>
                         <Link
                             to="/signup"

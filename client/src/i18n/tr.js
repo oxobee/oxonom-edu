@@ -15,7 +15,7 @@ const tr = {
     success: 'İşlem başarılı'
   },
   nav: {
-    brand: 'EduBoard',
+    brand: 'Oxonom Edu',
     home: 'Ana Sayfa',
     features: 'Özellikler',
     about: 'Hakkımızda',
@@ -78,7 +78,7 @@ const tr = {
   featuresPage: {
     badge: 'Üstün Yetenekler',
     title: 'Modern Eğitim İçin Tasarlanmış Araçlar',
-    subtitle: 'EduBoard, etkileşimli öğrenmeyi kolaylaştıran gelişmiş çizim, paylaşım ve yönetim araçları sunar.',
+    subtitle: 'Oxonom Edu, etkileşimli öğrenmeyi kolaylaştıran gelişmiş çizim, paylaşım ve yönetim araçları sunar.',
     collabTitle: 'Gerçek Zamanlı Eşzamanlılık',
     collabDesc: 'Socket.IO altyapısıyla sıfır gecikmeli imleç takibi, anlık çizim aktarımı ve katılımcı senkronizasyonu.',
     toolsTitle: 'Zengin Çizim & Şekil Kütüphanesi',
@@ -126,9 +126,9 @@ const tr = {
   faqPage: {
     badge: 'Merak Edilenler',
     title: 'Sıkça Sorulan Sorular',
-    subtitle: 'EduBoard hakkında aklınıza takılabilecek tüm soruların yanıtları burada.',
-    q1: 'EduBoard kullanımı ücretsiz mi?',
-    a1: 'Evet, EduBoard temel özellikleriyle öğretmen ve öğrenciler için tamamen ücretsizdir.',
+    subtitle: 'Oxonom Edu hakkında aklınıza takılabilecek tüm soruların yanıtları burada.',
+    q1: 'Oxonom Edu kullanımı ücretsiz mi?',
+    a1: 'Evet, Oxonom Edu temel özellikleriyle öğretmen ve öğrenciler için tamamen ücretsizdir.',
     q2: 'Öğrencilerin katılmak için hesap açması zorunlu mu?',
     a2: 'Öğrenciler dilerse oda kodunu girerek hızlıca katılabilir veya tahtalarını kaydetmek için ücretsiz hesap oluşturabilir.',
     q3: 'Öğretmen hesapları nasıl onaylanır?',
@@ -149,7 +149,7 @@ const tr = {
     noAccount: 'Henüz hesabınız yok mu?',
     signupLink: 'Hemen Kayıt Olun',
     signupTitle: 'Hesap Oluşturun',
-    signupSubtitle: 'EduBoard topluluğuna katılarak etkileşimli eğitime başlayın',
+    signupSubtitle: 'Oxonom Edu topluluğuna katılarak etkileşimli eğitime başlayın',
     selectRole: 'Kayıt Türü Seçin',
     teacher: 'Öğretmen',
     teacherDesc: 'Tahtalar oluşturun, dersleri yönetin ve öğrencilerinizi davet edin.',
@@ -313,7 +313,7 @@ const tr = {
     scanBtn: 'QR Kod Tara',
     uploadImage: 'Galeriden QR Fotoğrafı Seç',
     cameraError: 'Kameraya erişilemedi. Lütfen kamera izni verin veya oda kodunu elle girin.',
-    invalidQR: 'Geçersiz QR Kod. Lütfen geçerli bir EduBoard oda QR kodu taratın.',
+    invalidQR: 'Geçersiz QR Kod. Lütfen geçerli bir Oxonom Edu oda QR kodu taratın.',
     fileScanFailed: 'Fotoğraftan QR kod okunamadı. Lütfen net bir fotoğraf seçin veya kamerayı kullanın.'
   }
 };

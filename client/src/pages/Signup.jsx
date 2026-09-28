@@ -436,7 +436,7 @@ const Signup = () => {
                         <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md">
                             <BsLightningChargeFill className="text-base" />
                         </div>
-                        <span className="font-bold text-xl sm:text-2xl text-foreground tracking-tight">EduBoard</span>
+                        <span className="font-bold text-xl sm:text-2xl text-foreground tracking-tight">Oxonom Edu</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <Link to="/login" className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
@@ -1031,7 +1031,7 @@ const Signup = () => {
                                         <span>Adım 4: Hesap Bilgileri</span>
                                     </h3>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        EduBoard platformuna giriş yapacağınız kullanıcı adı, e-posta ve şifrenizi belirleyin.
+                                        Oxonom Edu platformuna giriş yapacağınız kullanıcı adı, e-posta ve şifrenizi belirleyin.
                                     </p>
                                 </div>
 

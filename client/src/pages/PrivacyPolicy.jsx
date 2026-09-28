@@ -4,12 +4,12 @@ const sections = [
   {
     title: "Introduction",
     content:
-      "Welcome to EduBoard. Your privacy is important to us. This Privacy Policy explains how we collect, use, store, and protect your information while using our platform.",
+      "Welcome to Oxonom Edu. Your privacy is important to us. This Privacy Policy explains how we collect, use, store, and protect your information while using our platform.",
   },
   {
     title: "Information We Collect",
     content:
-      "We may collect personal information such as your name, email address, profile information, learning progress, and usage data when you interact with EduBoard.",
+      "We may collect personal information such as your name, email address, profile information, learning progress, and usage data when you interact with Oxonom Edu.",
   },
   {
     title: "How We Use Your Information",
@@ -19,7 +19,7 @@ const sections = [
   {
     title: "Cookies & Tracking Technologies",
     content:
-      "EduBoard may use cookies, local storage, and analytics technologies to remember preferences, improve functionality, analyze platform usage, and enhance your overall experience.",
+      "Oxonom Edu may use cookies, local storage, and analytics technologies to remember preferences, improve functionality, analyze platform usage, and enhance your overall experience.",
   },
   {
     title: "Data Sharing",
@@ -39,7 +39,7 @@ const sections = [
   {
     title: "Third-Party Services",
     content:
-      "EduBoard may integrate with third-party services such as authentication providers, analytics tools, or cloud hosting platforms. These providers operate under their own privacy policies.",
+      "Oxonom Edu may integrate with third-party services such as authentication providers, analytics tools, or cloud hosting platforms. These providers operate under their own privacy policies.",
   },
   {
     title: "Children's Privacy",
@@ -54,7 +54,7 @@ const sections = [
   {
     title: "Contact Information",
     content:
-      "If you have any questions, concerns, or requests regarding this Privacy Policy, please contact the EduBoard support team at support@eduboard.com.",
+      "If you have any questions, concerns, or requests regarding this Privacy Policy, please contact the Oxonom Edu support team at contact@oxonom.com.",
   },
 ];
 

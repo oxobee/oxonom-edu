@@ -67,7 +67,7 @@ const VerificationPending = () => {
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
                             <BsLightningChargeFill className="text-white text-2xl" />
                         </div>
-                        <span className="font-bold text-3xl text-white tracking-tight">EduBoard</span>
+                        <span className="font-bold text-3xl text-white tracking-tight">Oxonom Edu</span>
                     </div>
                 </div>
 

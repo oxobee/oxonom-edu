@@ -15,7 +15,7 @@ const en = {
     success: 'Action successful'
   },
   nav: {
-    brand: 'EduBoard',
+    brand: 'Oxonom Edu',
     home: 'Home',
     features: 'Features',
     about: 'About',
@@ -78,7 +78,7 @@ const en = {
   featuresPage: {
     badge: 'Superpowers',
     title: 'Tools Crafted for Modern Education',
-    subtitle: 'EduBoard provides dynamic drawing, real-time sharing, and session management tools to elevate learning.',
+    subtitle: 'Oxonom Edu provides dynamic drawing, real-time sharing, and session management tools to elevate learning.',
     collabTitle: 'Real-time Synchronous Sync',
     collabDesc: 'Powered by Socket.IO with zero-latency cursor tracking, real-time stroke streaming, and state sync.',
     toolsTitle: 'Rich Drawing & Shape Suite',
@@ -126,9 +126,9 @@ const en = {
   faqPage: {
     badge: 'FAQ',
     title: 'Frequently Asked Questions',
-    subtitle: 'Find quick answers to common questions about using EduBoard.',
-    q1: 'Is EduBoard free to use?',
-    a1: 'Yes, EduBoard core collaboration tools are completely free for students and educators.',
+    subtitle: 'Find quick answers to common questions about using Oxonom Edu.',
+    q1: 'Is Oxonom Edu free to use?',
+    a1: 'Yes, Oxonom Edu core collaboration tools are completely free for students and educators.',
     q2: 'Do students need an account to join?',
     a2: 'Students can join live sessions directly using room codes or create an account to save boards to their dashboard.',
     q3: 'How are teacher accounts approved?',
@@ -149,7 +149,7 @@ const en = {
     noAccount: "Don't have an account?",
     signupLink: 'Sign Up',
     signupTitle: 'Create an Account',
-    signupSubtitle: 'Join the EduBoard classroom platform today',
+    signupSubtitle: 'Join the Oxonom Edu classroom platform today',
     selectRole: 'Select Your Role',
     teacher: 'Teacher',
     teacherDesc: 'Create boards, manage live sessions, and invite students.',
@@ -313,7 +313,7 @@ const en = {
     scanBtn: 'Scan QR Code',
     uploadImage: 'Select QR Image from Gallery',
     cameraError: 'Camera could not be accessed. Please allow camera permission or enter the room code manually.',
-    invalidQR: 'Invalid QR Code. Please scan a valid EduBoard room QR code.',
+    invalidQR: 'Invalid QR Code. Please scan a valid Oxonom Edu room QR code.',
     fileScanFailed: 'Could not read QR code from image. Please choose a clear photo or use the camera.'
   }
 };

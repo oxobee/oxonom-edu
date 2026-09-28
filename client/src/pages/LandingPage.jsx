@@ -356,7 +356,7 @@ const LandingPage = () => {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto"
                     >
-                        {t('landing.heroSubtitle', 'EduBoard is the ultimate collaborative whiteboard platform for modern education.')}
+                        {t('landing.heroSubtitle', 'Oxonom Edu is the ultimate collaborative whiteboard platform for modern education.')}
                     </motion.p>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -589,7 +589,7 @@ const LandingPage = () => {
                             {t('landing.ctaHeading', 'Sınıfınızı Dönüştürmeye Hazır mısınız?')}
                         </h2>
                         <p className="text-xl text-slate-300 mb-8">
-                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için EduBoard kullanan binlerce eğitimci ve öğrenciye katılın.')}
+                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için Oxonom Edu kullanan binlerce eğitimci ve öğrenciye katılın.')}
                         </p>
                         <Link
                             to="/signup"

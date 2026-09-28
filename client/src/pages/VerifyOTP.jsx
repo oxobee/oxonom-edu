@@ -123,7 +123,7 @@ const VerifyOTP = () => {
                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                                 <BsLightningChargeFill className="text-white text-lg sm:text-xl" />
                             </div>
-                            <span className="font-bold text-xl sm:text-2xl text-white tracking-tight">EduBoard</span>
+                            <span className="font-bold text-xl sm:text-2xl text-white tracking-tight">Oxonom Edu</span>
                         </div>
                         <Link to="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
                             ← Back to Login

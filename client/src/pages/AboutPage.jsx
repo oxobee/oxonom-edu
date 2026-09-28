@@ -32,7 +32,7 @@ const AboutPage = () => {
     }, [selectedMember]);
 
     const timeline = [
-        { year: "2025", title: "Project Launch", desc: "EduBoard goes live" },
+        { year: "2025", title: "Project Launch", desc: "Oxonom Edu goes live" },
         { year: "Q1", title: "1K Users", desc: "Reached first milestone" },
         { year: "Q2", title: "Feature Expansion", desc: "Added advanced tools" },
         { year: "Future", title: "Global Scale", desc: "Expanding worldwide" },
@@ -253,7 +253,7 @@ const AboutPage = () => {
                         className="text-center mb-16"
                     >
                         <h2 className="text-4xl md:text-5xl font-bold mb-4">Meet the Team</h2>
-                        <p className={`text-xl ${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'}`}>The creators behind EduBoard</p>
+                        <p className={`text-xl ${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'}`}>The creators behind Oxonom Edu</p>
                     </motion.div>
 
                     <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">

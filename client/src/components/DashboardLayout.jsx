@@ -30,7 +30,7 @@ import { cn } from '../lib/utils';
 const DashboardLayout = ({ children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    return localStorage.getItem('eduboard_sidebar_collapsed') === 'true';
+    return (localStorage.getItem('oxonom_sidebar_collapsed') || localStorage.getItem('eduboard_sidebar_collapsed')) === 'true';
   });
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -47,7 +47,7 @@ const DashboardLayout = ({ children }) => {
   const toggleCollapse = () => {
     setIsCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('eduboard_sidebar_collapsed', String(next));
+      localStorage.setItem('oxonom_sidebar_collapsed', String(next));
       return next;
     });
   };
@@ -143,10 +143,10 @@ const DashboardLayout = ({ children }) => {
   // Derive current page title for breadcrumb
   const allNavItems = navGroups.flatMap(g => g.items);
   const activeItem = allNavItems.find(item => item.path === location.pathname) || {
-    name: location.pathname.startsWith('/classes/') ? 'Sınıf Detayı' : 'EduBoard'
+    name: location.pathname.startsWith('/classes/') ? 'Sınıf Detayı' : 'Oxonom Edu'
   };
 
-  const isDemoUser = !!(user?.isDemo || user?.username === 'demo_ogretmen' || user?.username === 'demo_ogrenci' || user?.email === 'demo@oxonomet.com' || user?.email === 'demo_ogrenci@oxonomet.com');
+  const isDemoUser = !!(user?.isDemo || user?.username === 'demo_ogretmen' || user?.username === 'demo_ogrenci' || user?.email === 'demo@oxonom.com' || user?.email === 'demo_ogrenci@oxonom.com' || user?.email === 'demo@oxonomet.com' || user?.email === 'demo_ogrenci@oxonomet.com');
 
   return (
     <div className="h-screen bg-background text-foreground flex flex-col antialiased overflow-hidden">
@@ -165,14 +165,14 @@ const DashboardLayout = ({ children }) => {
             <Menu className="w-4 h-4" />
           </button>
 
-          {/* EduBoard Horizontal Logo (Mobile & Desktop) */}
+          {/* Oxonom Edu Horizontal Logo (Mobile & Desktop) */}
           <Link to="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
             <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-sm text-foreground tracking-tight">EduBoard</span>
+                <span className="font-semibold text-sm text-foreground tracking-tight">Oxonom Edu</span>
                 <span className="sm:hidden text-[9px] font-medium px-1.5 py-0.2 rounded bg-primary/15 text-primary border border-primary/25">
                   {isAdmin ? 'Admin' : isTeacher ? 'Öğretmen' : 'Öğrenci'}
                 </span>
@@ -383,7 +383,7 @@ const DashboardLayout = ({ children }) => {
                       <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold">
                         <Sparkles className="w-4 h-4" />
                       </div>
-                      <span className="font-semibold text-foreground text-sm">EduBoard</span>
+                      <span className="font-semibold text-foreground text-sm">Oxonom Edu</span>
                     </div>
 
                     <button

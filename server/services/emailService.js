@@ -102,7 +102,7 @@ const sendDirectTeacherRegistrationNotification = async (teacherData, documents)
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #0891b2 0%, #3b82f6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #e0f2fe; margin: 10px 0 0 0;">Teacher Verification Request</p>
             </div>
             
@@ -137,7 +137,7 @@ const sendDirectTeacherRegistrationNotification = async (teacherData, documents)
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated notification from EduBoard</p>
+                <p>This is an automated notification from Oxonom Edu</p>
             </div>
         </div>
     `;
@@ -146,7 +146,7 @@ const sendDirectTeacherRegistrationNotification = async (teacherData, documents)
         if (USE_GMAIL) {
             // Send via Gmail SMTP
             const info = await transporter.sendMail({
-                from: `"EduBoard Verification" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu Verification" <${process.env.SMTP_USER}>`,
                 to: adminEmail,
                 subject: '🔔 New Teacher Registration - Verification Required',
                 html: htmlContent
@@ -156,7 +156,7 @@ const sendDirectTeacherRegistrationNotification = async (teacherData, documents)
         } else {
             // Send via Resend
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [adminEmail],
                 subject: '🔔 New Teacher Registration - Verification Required',
                 html: htmlContent
@@ -190,19 +190,19 @@ const sendDirectApprovalEmail = async (teacherEmail, teacherName) => {
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #d1fae5; margin: 10px 0 0 0;">Account Approved</p>
             </div>
             
             <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <h2 style="color: #1e293b; margin-top: 0;">Welcome to EduBoard! 🎉</h2>
+                <h2 style="color: #1e293b; margin-top: 0;">Welcome to Oxonom Edu! 🎉</h2>
                 
                 <p style="color: #475569; line-height: 1.6;">
                     Hi <strong>${teacherName}</strong>,
                 </p>
                 
                 <p style="color: #475569; line-height: 1.6;">
-                    Great news! Your teacher account has been approved. You can now log in and start using EduBoard's collaborative whiteboard platform.
+                    Great news! Your teacher account has been approved. You can now log in and start using Oxonom Edu's collaborative whiteboard platform.
                 </p>
                 
                 <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
@@ -214,7 +214,7 @@ const sendDirectApprovalEmail = async (teacherEmail, teacherName) => {
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="${process.env.CLIENT_URL}/login" 
                        style="display: inline-block; background: linear-gradient(135deg, #0891b2 0%, #3b82f6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 6px rgba(8, 145, 178, 0.3);">
-                        Login to EduBoard
+                        Login to Oxonom Edu
                     </a>
                 </div>
                 
@@ -224,7 +224,7 @@ const sendDirectApprovalEmail = async (teacherEmail, teacherName) => {
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated email from EduBoard</p>
+                <p>This is an automated email from Oxonom Edu</p>
             </div>
         </div>
     `;
@@ -233,7 +233,7 @@ const sendDirectApprovalEmail = async (teacherEmail, teacherName) => {
         if (USE_GMAIL) {
             // Send via Gmail SMTP
             const info = await transporter.sendMail({
-                from: `"EduBoard" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu" <${process.env.SMTP_USER}>`,
                 to: teacherEmail,
                 subject: '🎉 Your Teacher Account Has Been Approved!',
                 html: htmlContent
@@ -243,7 +243,7 @@ const sendDirectApprovalEmail = async (teacherEmail, teacherName) => {
         } else {
             // Send via Resend
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [teacherEmail],
                 subject: '🎉 Your Teacher Account Has Been Approved!',
                 html: htmlContent
@@ -277,7 +277,7 @@ const sendDirectRejectionEmail = async (teacherEmail, teacherName, reason) => {
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #e2e8f0; margin: 10px 0 0 0;">Application Update</p>
             </div>
             
@@ -289,7 +289,7 @@ const sendDirectRejectionEmail = async (teacherEmail, teacherName, reason) => {
                 </p>
                 
                 <p style="color: #475569; line-height: 1.6;">
-                    Thank you for your interest in joining EduBoard as a teacher. After reviewing your application, we're unable to approve your account at this time.
+                    Thank you for your interest in joining Oxonom Edu as a teacher. After reviewing your application, we're unable to approve your account at this time.
                 </p>
                 
                 ${reason ? `
@@ -312,7 +312,7 @@ const sendDirectRejectionEmail = async (teacherEmail, teacherName, reason) => {
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated email from EduBoard</p>
+                <p>This is an automated email from Oxonom Edu</p>
             </div>
         </div>
     `;
@@ -321,7 +321,7 @@ const sendDirectRejectionEmail = async (teacherEmail, teacherName, reason) => {
         if (USE_GMAIL) {
             // Send via Gmail SMTP
             const info = await transporter.sendMail({
-                from: `"EduBoard" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu" <${process.env.SMTP_USER}>`,
                 to: teacherEmail,
                 subject: 'Update on Your Teacher Account Application',
                 html: htmlContent
@@ -331,7 +331,7 @@ const sendDirectRejectionEmail = async (teacherEmail, teacherName, reason) => {
         } else {
             // Send via Resend
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [teacherEmail],
                 subject: 'Update on Your Teacher Account Application',
                 html: htmlContent
@@ -365,7 +365,7 @@ const sendDirectPasswordResetEmail = async (userEmail, userName, otp) => {
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #fef3c7; margin: 10px 0 0 0;">Password Reset Request</p>
             </div>
             
@@ -377,7 +377,7 @@ const sendDirectPasswordResetEmail = async (userEmail, userName, otp) => {
                 </p>
                 
                 <p style="color: #475569; line-height: 1.6;">
-                    We received a request to reset the password for your EduBoard account. Use the One-Time Password (OTP) below to proceed.
+                    We received a request to reset the password for your Oxonom Edu account. Use the One-Time Password (OTP) below to proceed.
                 </p>
                 
                 <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px dashed #f59e0b;">
@@ -391,7 +391,7 @@ const sendDirectPasswordResetEmail = async (userEmail, userName, otp) => {
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated email from EduBoard</p>
+                <p>This is an automated email from Oxonom Edu</p>
             </div>
         </div>
     `;
@@ -400,7 +400,7 @@ const sendDirectPasswordResetEmail = async (userEmail, userName, otp) => {
         if (USE_GMAIL) {
             // Send via Gmail SMTP
             const info = await transporter.sendMail({
-                from: `"EduBoard" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu" <${process.env.SMTP_USER}>`,
                 to: userEmail,
                 subject: '🔒 Your Password Reset OTP',
                 html: htmlContent
@@ -410,7 +410,7 @@ const sendDirectPasswordResetEmail = async (userEmail, userName, otp) => {
         } else {
             // Send via Resend
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [userEmail],
                 subject: '🔒 Your Password Reset OTP',
                 html: htmlContent
@@ -456,7 +456,7 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #e0e7ff; margin: 10px 0 0 0;">Email Verification Request</p>
             </div>
             
@@ -468,7 +468,7 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
                 </p>
                 
                 <p style="color: #475569; line-height: 1.6;">
-                    Thank you for signing up for EduBoard! To complete your registration and activate your account, please verify your email address using the One-Time Password (OTP) below.
+                    Thank you for signing up for Oxonom Edu! To complete your registration and activate your account, please verify your email address using the One-Time Password (OTP) below.
                 </p>
                 
                 <div style="background-color: #e0e7ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px dashed #6366f1;">
@@ -482,7 +482,7 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated email from EduBoard</p>
+                <p>This is an automated email from Oxonom Edu</p>
             </div>
         </div>
     `;
@@ -491,9 +491,9 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
         if (USE_GMAIL) {
             // Send via Gmail SMTP
             const info = await transporter.sendMail({
-                from: `"EduBoard" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu" <${process.env.SMTP_USER}>`,
                 to: userEmail,
-                subject: '✉️ Verify Your EduBoard Email Address',
+                subject: '✉️ Verify Your Oxonom Edu Email Address',
                 html: htmlContent
             });
             console.log('✅ Verification email sent via Gmail to:', userEmail);
@@ -509,9 +509,9 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
 
             // Send via Resend
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [userEmail],
-                subject: '✉️ Verify Your EduBoard Email Address',
+                subject: '✉️ Verify Your Oxonom Edu Email Address',
                 html: htmlContent
             });
 
@@ -545,7 +545,7 @@ const sendDirectContactFormEmail = async (adminEmail, subject, textContent) => {
     const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
             <div style="background: linear-gradient(135deg, #0891b2 0%, #3b82f6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ EduBoard</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px;">⚡ Oxonom Edu</h1>
                 <p style="color: #e0f2fe; margin: 10px 0 0 0;">New Contact Form Submission</p>
             </div>
             
@@ -558,7 +558,7 @@ ${textContent}
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;">
-                <p>This is an automated notification from EduBoard Contact Form</p>
+                <p>This is an automated notification from Oxonom Edu Contact Form</p>
             </div>
         </div>
     `;
@@ -566,7 +566,7 @@ ${textContent}
     try {
         if (USE_GMAIL) {
             const info = await transporter.sendMail({
-                from: `"EduBoard Contact" <${process.env.SMTP_USER}>`,
+                from: `"Oxonom Edu Contact" <${process.env.SMTP_USER}>`,
                 to: adminEmail,
                 subject: subject,
                 html: htmlContent
@@ -575,7 +575,7 @@ ${textContent}
             return { success: true, messageId: info.messageId };
         } else {
             const { data, error } = await resend.emails.send({
-                from: 'EduBoard <onboarding@resend.dev>',
+                from: 'Oxonom Edu <onboarding@resend.dev>',
                 to: [adminEmail],
                 subject: subject,
                 html: htmlContent

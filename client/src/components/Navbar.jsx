@@ -83,7 +83,7 @@ const Navbar = () => {
                                 <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
                             </svg>
                         </div>
-                        <span className="text-xl font-bold text-white">EduBoard</span>
+                        <span className="text-xl font-bold text-white">Oxonom Edu</span>
                     </Link>
 
                     {/* Desktop Navigation - Only show Home/Features/About when NOT logged in */}

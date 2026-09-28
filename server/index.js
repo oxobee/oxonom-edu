@@ -66,7 +66,7 @@ mongoose.connect(MONGODB_URI)
 app.get('/', (req, res) => {
   res.json({
     status: 'Server is running! 🚀',
-    message: 'EduBoard API Server',
+    message: 'Oxonom Edu API Server',
     endpoints: {
       auth: '/api/auth',
       upload: '/api/upload',

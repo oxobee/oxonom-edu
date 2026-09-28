@@ -15,6 +15,6 @@ services:
       - key: CLIENT_URL
         value: https://oxonomedu.vercel.app
       - key: JWT_SECRET
-        generateValue: true
+        value: supersecretjwtkey_eduboard_oxonom_2026
       - key: MONGODB_URI
-        sync: false
+        value: mongodb+srv://oxobee_admin:OxonomEdu2026DbSecret@oxonomedu.miwnehh.mongodb.net/eduboard?retryWrites=true&w=majority

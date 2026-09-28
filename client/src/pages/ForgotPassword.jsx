@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FaArrowRight, FaEnvelope } from 'react-icons/fa';
 import { BsLightningChargeFill } from 'react-icons/bs';
 import TeacherCharacter from '../components/TeacherCharacter';
+import LanguageToggle from '../components/LanguageToggle';
 
 const ForgotPassword = () => {
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -72,16 +75,19 @@ const ForgotPassword = () => {
                             </div>
                             <span className="font-bold text-xl sm:text-2xl text-white tracking-tight">EduBoard</span>
                         </div>
-                        <Link to="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
-                            ← Back to Login
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <LanguageToggle />
+                            <Link to="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
+                                ← {t('auth.loginBtn', 'Giriş Yap')}
+                            </Link>
+                        </div>
                     </motion.div>
 
                     <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-tight">
-                        Forgot Password?
+                        {t('auth.forgotPassword', 'Şifremi Unuttum')}
                     </h2>
                     <p className="text-slate-400 text-sm sm:text-base mb-6 sm:mb-8">
-                        Enter your email address and we'll send you an OTP to reset your password.
+                        {t('auth.forgotPasswordDesc', 'E-posta adresinizi girin, şifrenizi sıfırlamanız için doğrulama kodu gönderelim.')}
                     </p>
                 </div>
 
@@ -98,7 +104,7 @@ const ForgotPassword = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6 max-w-sm">
                     <div className="group">
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">Email Address</label>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">{t('auth.email', 'E-posta Adresi')}</label>
                         <div className="relative">
                             <FaEnvelope className="absolute top-4 left-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
                             <input
@@ -119,7 +125,7 @@ const ForgotPassword = () => {
                         disabled={isLoading}
                         className={`w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group transition-all mt-4 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        {isLoading ? 'Sending OTP...' : 'Send Reset OTP'} 
+                        {isLoading ? t('common.loading', 'Gönderiliyor...') : t('auth.sendResetOtp', 'Sıfırlama Kodu Gönder')} 
                         {!isLoading && <FaArrowRight className="group-hover:translate-x-1 transition-transform" />}
                     </motion.button>
                 </form>

@@ -12,20 +12,13 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-        // Get theme from localStorage or default to 'dark'
-        return localStorage.getItem('theme') || 'dark';
+        // Enforce dark mode permanently for now as requested
+        return 'dark';
     });
 
     useEffect(() => {
-        // Save theme to localStorage whenever it changes
-        localStorage.setItem('theme', theme);
-
-        // Apply theme class to document root
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        localStorage.setItem('theme', 'dark');
+        document.documentElement.classList.add('dark');
     }, [theme]);
 
     const toggleTheme = () => {

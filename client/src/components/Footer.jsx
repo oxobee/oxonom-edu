@@ -1,28 +1,30 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
     const footerLinks = {
-        Product: [
-            { name: 'Features', path: '/features' },
-            { name: 'About', path: '/about' },
-            { name: 'Dashboard', path: '/dashboard' },
+        [t('footer.product')]: [
+            { name: t('nav.features'), path: '/features' },
+            { name: t('nav.about'), path: '/about' },
+            { name: t('nav.dashboard'), path: '/dashboard' },
         ],
-        Company: [
-            { name: 'About Us', path: '/about' },
-            { name: 'Contact', path: '/contact' }, // Fixed: Changed '#contact' to '/contact'
+        [t('footer.company')]: [
+            { name: t('footer.aboutUs'), path: '/about' },
+            { name: t('footer.contact'), path: '/contact' },
         ],
-        Resources: [
-    { name: 'Documentation', path: '/docs' },
-    { name: 'Support', path: '/support' },
-    { name: 'FAQ', path: '/faq' },
-    { name: 'Repository', path: 'https://github.com/KENZY004/Eduboard' },
-  ],
-        Legal: [
-           { name: 'Privacy Policy', path: '/privacy-policy' },
-           { name: 'Terms of Service', path: '/terms-of-service' },
+        [t('footer.resources')]: [
+            { name: t('footer.docs'), path: '/docs' },
+            { name: t('footer.support'), path: '/support' },
+            { name: t('footer.faq'), path: '/faq' },
+            { name: t('footer.repository'), path: 'https://github.com/KENZY004/Eduboard' },
+        ],
+        [t('footer.legal')]: [
+           { name: t('footer.privacyPolicy'), path: '/privacy-policy' },
+           { name: t('footer.termsOfService'), path: '/terms-of-service' },
         ],
     };
 
@@ -118,7 +120,7 @@ const Footer = () => {
               </svg>
             </div>
             <span className="text-sm text-slate-400">
-              © {currentYear} EduBoard. All rights reserved.
+              © {currentYear} EduBoard. {t('footer.rightsReserved')}
             </span>
           </div>
 

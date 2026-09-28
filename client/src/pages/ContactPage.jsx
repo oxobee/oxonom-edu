@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
 import Footer from '../components/Footer';
 
 const ContactPage = () => {
+    const { t } = useTranslation();
     const { theme } = useTheme();
     const [formData, setFormData] = useState({
         name: '',
@@ -71,7 +73,7 @@ const ContactPage = () => {
                         className="text-6xl md:text-7xl font-extrabold mb-6"
                     >
                         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                            Contact Our Team
+                            {t('contactPage.title', 'Bize Ulaşın')}
                         </span>
                     </motion.h1>
                     <motion.p
@@ -80,7 +82,7 @@ const ContactPage = () => {
                         transition={{ delay: 0.2 }}
                         className={`text-2xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}
                     >
-                        Have questions or feedback? Drop us a message below.
+                        {t('contactPage.subtitle', 'Sorularınız veya geri bildirimleriniz için bize mesaj gönderin.')}
                     </motion.p>
                 </div>
             </section>
@@ -98,14 +100,14 @@ const ContactPage = () => {
                     >
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <label className="block text-sm font-semibold mb-2">Name</label>
+                                <label className="block text-sm font-semibold mb-2">{t('contactPage.nameLabel', 'Adınız Soyadınız')}</label>
                                 <input
                                     type="text"
                                     name="name"
                                     required
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="Your Name"
+                                    placeholder={t('contactPage.namePlaceholder', 'Adınızı girin')}
                                     className={`w-full px-4 py-3 rounded-xl outline-none border transition-all ${
                                         theme === 'dark' 
                                             ? 'bg-slate-950 border-slate-800 text-white focus:border-purple-500' 
@@ -115,14 +117,14 @@ const ContactPage = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold mb-2">Email Address</label>
+                                <label className="block text-sm font-semibold mb-2">{t('contactPage.emailLabel', 'E-posta Adresiniz')}</label>
                                 <input
                                     type="email"
                                     name="email"
                                     required
                                     value={formData.email}
                                     onChange={handleChange}
-                                    placeholder="you@example.com"
+                                    placeholder={t('contactPage.emailPlaceholder', 'ornek@oxonom.com')}
                                     className={`w-full px-4 py-3 rounded-xl outline-none border transition-all ${
                                         theme === 'dark' 
                                             ? 'bg-slate-950 border-slate-800 text-white focus:border-purple-500' 
@@ -132,14 +134,14 @@ const ContactPage = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold mb-2">Message</label>
+                                <label className="block text-sm font-semibold mb-2">{t('contactPage.messageLabel', 'Mesajınız')}</label>
                                 <textarea
                                     name="message"
                                     required
                                     rows="5"
                                     value={formData.message}
                                     onChange={handleChange}
-                                    placeholder="Type your feedback, question, or message details here..."
+                                    placeholder={t('contactPage.messagePlaceholder', 'Mesajınızı buraya yazın...')}
                                     className={`w-full px-4 py-3 rounded-xl outline-none border transition-all resize-none ${
                                         theme === 'dark' 
                                             ? 'bg-slate-950 border-slate-800 text-white focus:border-purple-500' 
@@ -154,7 +156,7 @@ const ContactPage = () => {
                                 disabled={isSubmitting}
                                 className="w-full py-4 rounded-xl text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-50"
                             >
-                                {isSubmitting ? 'Sending Message...' : 'Send Message'}
+                                {isSubmitting ? t('contactPage.sending', 'Gönderiliyor...') : t('contactPage.sendButton', 'Mesajı Gönder')}
                             </button>
 
                             {/* Status Notifications */}

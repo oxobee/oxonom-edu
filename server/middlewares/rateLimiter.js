@@ -19,14 +19,15 @@ const createLimiterHandler = (customMessage) => (req, res, next, options) => { /
     }); // ← NEW
 }; // ← NEW
                                                                               // ← NEW
-// 1. authLimiter: for /login and /register (strict — 10 req / 15 min)        // ← NEW
-const authLimiter = rateLimit({ // ← NEW
-    windowMs: parseInt(process.env.AUTH_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // ← NEW
-    max: parseInt(process.env.AUTH_LIMIT_MAX, 10) || 10, // ← NEW
-    standardHeaders: true, // ← NEW
-    legacyHeaders: false, // ← NEW
-    handler: createLimiterHandler('Too many login or registration attempts. Please try again after some time.'), // ← NEW
-}); // ← NEW
+// 1. authLimiter: for /login and /register (strict — 10 req / 15 min, higher in development)
+const isDev = process.env.NODE_ENV !== 'production';
+const authLimiter = rateLimit({
+    windowMs: parseInt(process.env.AUTH_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+    max: parseInt(process.env.AUTH_LIMIT_MAX, 10) || (isDev ? 500 : 10),
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: createLimiterHandler('Too many login or registration attempts. Please try again after some time.'),
+});
                                                                               // ← NEW
 // 2. otpLimiter: for /verify-otp and /forgot-password (5 req / 10 min)       // ← NEW
 const otpLimiter = rateLimit({ // ← NEW

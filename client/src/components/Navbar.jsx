@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageToggle from './LanguageToggle';
+import PWAInstallPrompt from './PWAInstallPrompt';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
+    const { t } = useTranslation();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
         const handleScroll = () => {
@@ -29,26 +35,32 @@ const Navbar = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         navigate('/');
     };
 
-    const hiddenRoutes = ['/login', '/signup', '/forgot-password', '/verify-otp', '/reset-password', '/verify-email'];
-    if (hiddenRoutes.includes(location.pathname)) {
+    const publicRoutes = ['/', '/features', '/about', '/contact', '/faq', '/terms', '/terms-of-service', '/privacy-policy'];
+    const isPublicMarketingRoute = publicRoutes.includes(location.pathname);
+
+    // Only render the marketing Navbar on public marketing pages
+    if (!isPublicMarketingRoute) {
         return null;
     }
 
     // Different nav links based on authentication status
     const navLinks = !token 
         ? [
-            { name: 'Home', path: '/' },
-            { name: 'Features', path: '/features' },
-            { name: 'About', path: '/about' },
-          { name: 'Contact', path: '/contact' }
+            { name: t('nav.home'), path: '/' },
+            { name: t('nav.features'), path: '/features' },
+            { name: t('nav.about'), path: '/about' },
+            { name: t('nav.contact'), path: '/contact' },
+            { name: t('nav.faq'), path: '/faq' }
         ]
-        : []; // Empty array for logged-in users - no Home/Features/About links
+        : [];
 
     return (
         <nav
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
                 isMobileMenuOpen
                     ? 'bottom-0 bg-slate-950'
@@ -91,25 +103,55 @@ const Navbar = () => {
 ))}
                     </div>
 
-                    {/* Auth Buttons */}
-                    <div className="hidden md:flex items-center space-x-4">
+                    {/* Auth & Language Buttons */}
+                    <div className="hidden md:flex items-center space-x-3">
+                        <PWAInstallPrompt variant="button" />
+                        <LanguageToggle />
+                        {token && <NotificationBell />}
                         {token ? (
                             <>
-                                <Link
-  to="/dashboard"
-  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-    location.pathname === "/dashboard"
-      ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-lg shadow-indigo-500/10"
-      : "text-white bg-indigo-600/20 hover:bg-indigo-600/30"
-  }`}
->
-  Dashboard
-</Link>
+                                {user?.role === 'admin' ? (
+                                    <Link
+                                        to="/admin"
+                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                            location.pathname === "/admin"
+                                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-lg shadow-purple-500/10"
+                                                : "text-white bg-purple-600/20 hover:bg-purple-600/30"
+                                        }`}
+                                    >
+                                        {t('nav.admin')}
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link
+                                            to="/dashboard"
+                                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                                location.pathname === "/dashboard"
+                                                    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-lg shadow-indigo-500/10"
+                                                    : "text-white bg-indigo-600/20 hover:bg-indigo-600/30"
+                                            }`}
+                                        >
+                                            {t('nav.dashboard')}
+                                        </Link>
+                                        {user?.role === 'teacher' && (
+                                            <Link
+                                                to="/classes"
+                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                                    location.pathname.startsWith("/classes")
+                                                        ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-lg shadow-purple-500/10"
+                                                        : "text-slate-300 hover:text-white hover:bg-white/5"
+                                                }`}
+                                            >
+                                                Sınıflarım
+                                            </Link>
+                                        )}
+                                    </>
+                                )}
                                 <button
                                     onClick={handleLogout}
                                     className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
                                 >
-                                    Logout
+                                    {t('nav.logout')}
                                 </button>
                             </>
                         ) : (
@@ -118,23 +160,25 @@ const Navbar = () => {
                                     to="/login"
                                     className="px-4 py-2 text-sm font-medium text-white hover:text-indigo-300 transition-colors"
                                 >
-                                    Login
+                                    {t('nav.login')}
                                 </Link>
                                 <Link
                                     to="/signup"
-                                    className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/30"
+                                    className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/30"
                                 >
-                                    Sign Up
+                                    {t('nav.signup')}
                                 </Link>
                             </>
                         )}
                     </div>
 
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden p-2 text-white hover:text-indigo-300 transition-colors"
-                    >
+                    {/* Mobile Menu Button & Notification */}
+                    <div className="md:hidden flex items-center gap-2">
+                        {token && <NotificationBell />}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="p-2 text-white hover:text-indigo-300 transition-colors"
+                        >
                         <svg
                             className="w-6 h-6"
                             fill="none"
@@ -159,6 +203,7 @@ const Navbar = () => {
                         </svg>
                     </button>
                 </div>
+            </div>
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
@@ -180,19 +225,52 @@ const Navbar = () => {
                                 </Link>
                             ))}
                             <div className="pt-4 border-t border-white/10 flex flex-col space-y-3">
+                                <div className="flex items-center justify-between px-2 pb-2">
+                                    <LanguageToggle />
+                                    <PWAInstallPrompt variant="button" />
+                                </div>
                                 {token ? (
                                     <>
-                                        <Link
-                                            to="/dashboard"
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                           className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
-  location.pathname === "/dashboard"
-    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-    : "text-white bg-indigo-600/20 hover:bg-indigo-600/30"
-}`}
-                                        >
-                                            Dashboard
-                                        </Link>
+                                        {user?.role === 'admin' ? (
+                                            <Link
+                                                to="/admin"
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
+                                                    location.pathname === "/admin"
+                                                        ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                                        : "text-white bg-purple-600/20 hover:bg-purple-600/30"
+                                                }`}
+                                            >
+                                                {t('nav.admin')}
+                                            </Link>
+                                        ) : (
+                                            <>
+                                                <Link
+                                                    to="/dashboard"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
+                                                        location.pathname === "/dashboard"
+                                                            ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                                                            : "text-white bg-indigo-600/20 hover:bg-indigo-600/30"
+                                                    }`}
+                                                >
+                                                    {t('nav.dashboard')}
+                                                </Link>
+                                                {user?.role === 'teacher' && (
+                                                    <Link
+                                                        to="/classes"
+                                                        onClick={() => setIsMobileMenuOpen(false)}
+                                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
+                                                            location.pathname.startsWith("/classes")
+                                                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                                                : "text-slate-300 hover:text-white hover:bg-white/5"
+                                                        }`}
+                                                    >
+                                                        Sınıflarım
+                                                    </Link>
+                                                )}
+                                            </>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 handleLogout();
@@ -200,7 +278,7 @@ const Navbar = () => {
                                             }}
                                             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors text-center"
                                         >
-                                            Logout
+                                            {t('nav.logout')}
                                         </button>
                                     </>
                                 ) : (
@@ -210,14 +288,14 @@ const Navbar = () => {
                                             onClick={() => setIsMobileMenuOpen(false)}
                                             className="px-4 py-2 text-sm font-medium text-white hover:text-indigo-300 transition-colors text-center"
                                         >
-                                            Login
+                                            {t('nav.login')}
                                         </Link>
                                         <Link
                                             to="/signup"
                                             onClick={() => setIsMobileMenuOpen(false)}
                                             className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/30 text-center"
                                         >
-                                            Sign Up
+                                            {t('nav.signup')}
                                         </Link>
                                     </>
                                 )}

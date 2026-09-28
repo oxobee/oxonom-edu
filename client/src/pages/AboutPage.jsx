@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,6 +11,7 @@ import { FaReact, FaNode } from "react-icons/fa";
 import { SiMongodb, SiSocketdotio, SiVite, SiTailwindcss  } from "react-icons/si";
 
 const AboutPage = () => {
+    const { t } = useTranslation();
     const { theme } = useTheme();
     const [activeTimeline, setActiveTimeline] = useState(0);
     const [selectedMember, setSelectedMember] = useState(null);
@@ -129,7 +131,7 @@ const AboutPage = () => {
                         className="text-6xl md:text-7xl font-extrabold mb-6"
                     >
                         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                            About EduBoard
+                            {t('aboutPage.title', 'Eğitimi Dijital Dünyada Özgürleştiriyoruz')}
                         </span>
                     </motion.h1>
                     <motion.p
@@ -138,7 +140,7 @@ const AboutPage = () => {
                         transition={{ delay: 0.2 }}
                         className={`text-2xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}
                     >
-                        Empowering educators with innovative tools for collaborative learning
+                        {t('aboutPage.subtitle', 'Öğretmen ve öğrencileri kesintisiz bir işbirliği alanında buluşturuyoruz.')}
                     </motion.p>
                 </div>
             </section>
@@ -152,12 +154,12 @@ const AboutPage = () => {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="text-4xl font-bold mb-6">Our Mission</h2>
+                            <h2 className="text-4xl font-bold mb-6">{t('aboutPage.missionTitle', 'Misyonumuz')}</h2>
                             <p className={`text-lg mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                Transform the way teachers and students collaborate in the digital age. We believe learning should be interactive, engaging, and accessible to everyone.
+                                {t('aboutPage.missionDesc', 'Geleneksel sınıf tahtasının sınırlarını aşarak, etkileşimli, dinamik ve herkesin eşit katılım sağladığı öğrenme ortamları sunmak.')}
                             </p>
                             <p className={`text-lg ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                Our platform combines the freedom of an infinite canvas with real-time collaboration, giving educators the tools to create dynamic visual lessons.
+                                {t('aboutPage.visionDesc', 'Yapay zeka ve gerçek zamanlı web teknolojileriyle desteklenen, dünyanın lider eğitim işbirliği platformu olmak.')}
                             </p>
                         </motion.div>
 

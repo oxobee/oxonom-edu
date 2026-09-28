@@ -1,35 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { FaArrowRight, FaLock, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { BsLightningChargeFill } from 'react-icons/bs';
-import TeacherCharacter from '../components/TeacherCharacter';
-import StudentCharacter from '../components/StudentCharacter';
-import { AnimatePresence } from 'framer-motion';
-
-const GoogleIcon = () => (
-    <svg className="w-5 h-5 flex-shrink-0 mr-2" viewBox="0 0 24 24" fill="none">
-        <path
-            fill="#4285F4"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        />
-        <path
-            fill="#34A853"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        />
-        <path
-            fill="#FBBC05"
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-        />
-        <path
-            fill="#EA4335"
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-        />
-    </svg>
-);
+import api from '../lib/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    ArrowRight,
+    Lock,
+    Mail,
+    Eye,
+    EyeOff,
+    Sparkles,
+    CheckCircle2,
+    AlertCircle,
+    PenTool,
+    Users,
+    Radio,
+    Layers,
+    Presentation,
+    Check,
+    GraduationCap
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Login = () => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -39,66 +33,6 @@ const Login = () => {
     const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
     const [detectedRole, setDetectedRole] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [tokenClient, setTokenClient] = useState(null);
-
-    const handleGoogleLogin = async (accessToken) => {
-        setError('');
-        setLoading(true);
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/google-login`, {
-                token: accessToken
-            });
-            localStorage.setItem('token', res.data.token);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
-            
-            if (res.data.user.role === 'admin') {
-                navigate('/admin');
-            } else {
-                navigate(from);
-            }
-        } catch (err) {
-            setError(err.response?.data?.message || 'Google login failed');
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        let timer;
-        const initializeGoogleClient = () => {
-            if (window.google) {
-                try {
-                    const client = window.google.accounts.oauth2.initTokenClient({
-                        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-                        scope: 'openid email profile',
-                        callback: async (tokenResponse) => {
-                            if (tokenResponse && tokenResponse.access_token) {
-                                await handleGoogleLogin(tokenResponse.access_token);
-                            }
-                        },
-                    });
-                    setTokenClient(client);
-                    if (timer) clearInterval(timer);
-                } catch (err) {
-                    console.error("Error initializing Google OAuth client:", err);
-                }
-            }
-        };
-
-        initializeGoogleClient();
-        timer = setInterval(initializeGoogleClient, 200);
-
-        return () => {
-            if (timer) clearInterval(timer);
-        };
-    }, []);
-
-    const handleGoogleClick = () => {
-        if (tokenClient) {
-            tokenClient.requestAccessToken();
-        } else {
-            setError("Google sign-in is not ready yet. Please try again.");
-        }
-    };
 
     useEffect(() => {
         if (error) {
@@ -129,10 +63,9 @@ const Login = () => {
         }
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/check-role`, {
+            const res = await api.post('/api/auth/check-role', {
                 email: trimmedEmail
             });
-            // Prevent race conditions where email has changed while request was in flight
             if (formData.email.trim() === trimmedEmail) {
                 if (res.data && res.data.role) {
                     setDetectedRole(res.data.role);
@@ -150,13 +83,14 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, formData);
+            const res = await api.post('/api/auth/login', formData);
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('user', JSON.stringify(res.data.user));
+            sessionStorage.setItem('oxonom_just_logged_in', 'true');
 
-            // Redirect based on role
             if (res.data.user.role === 'admin') {
                 navigate('/admin');
             } else {
@@ -168,300 +102,377 @@ const Login = () => {
             if (errorData?.error === 'EMAIL_NOT_VERIFIED') {
                 setError(
                     <span>
-                        {errorData.message}{' '}
+                        {errorData.message || 'E-posta adresiniz henüz doğrulanmamış.'}{' '}
                         <button
                             type="button"
                             onClick={() => navigate('/verify-email', { state: { email: errorData.email, autoSend: true } })}
-                            className="underline cursor-pointer text-indigo-400 hover:text-indigo-300 font-semibold bg-transparent border-none p-0 inline"
+                            className="underline cursor-pointer text-primary hover:text-primary/80 font-semibold bg-transparent border-none p-0 inline"
                         >
-                            Verify Now.
+                            Şimdi Doğrula
                         </button>
                     </span>
                 );
             } else if (errorData?.error === 'ACCOUNT_NOT_VERIFIED') {
-                // Store token temporarily for verification page
                 if (err.response?.data?.token) {
                     localStorage.setItem('token', err.response.data.token);
                 }
-                setError(errorData.message);
-                // Redirect to verification pending page after showing error
+                setError(errorData.message || 'Öğretmen hesabınız yönetici onayı bekliyor.');
                 setTimeout(() => {
                     navigate('/verification-pending');
                 }, 2000);
             } else {
-                setError(errorData?.message || 'Login failed');
+                const msg = errorData?.message || '';
+                if (errorData?.error === 'INVALID_CREDENTIALS' || msg.toLowerCase().includes('invalid credential')) {
+                    setError('Geçersiz kullanıcı adı, e-posta veya şifre.');
+                } else if (msg.toLowerCase().includes('email and password are required') || errorData?.error === 'MISSING_CREDENTIALS') {
+                    setError('Lütfen e-posta/kullanıcı adı ve şifrenizi giriniz.');
+                } else {
+                    setError(msg || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol ediniz.');
+                }
             }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDemoLogin = async () => {
+        setError('');
+        setLoading(true);
+        try {
+            const res = await api.post('/api/auth/login', {
+                email: 'demo_ogretmen',
+                password: 'Demo1234!'
+            });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            sessionStorage.setItem('oxonom_just_logged_in', 'true');
+            navigate('/dashboard');
+        } catch (err) {
+            console.error('Demo teacher login error:', err);
+            setError('Demo öğretmen hesabına giriş yapılamadı. Lütfen tekrar deneyin.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDemoStudentLogin = async () => {
+        setError('');
+        setLoading(true);
+        try {
+            const res = await api.post('/api/auth/login', {
+                email: 'demo_ogrenci',
+                password: 'Demo1234!'
+            });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            sessionStorage.setItem('oxonom_just_logged_in', 'true');
+            navigate('/dashboard');
+        } catch (err) {
+            console.error('Demo student login error:', err);
+            setError('Demo öğrenci hesabına giriş yapılamadı. Lütfen tekrar deneyin.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen lg:h-screen grid grid-cols-1 lg:grid-cols-2 overflow-hidden relative">
-
-            {/* Left: Form */}
+        <div className="min-h-screen lg:h-screen grid grid-cols-1 lg:grid-cols-2 overflow-hidden relative bg-background text-foreground">
+            {/* Left: Form Area */}
             <motion.div
-                initial={{ opacity: 0, x: -50 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="auth-panel-bg flex flex-col justify-center px-6 sm:px-8 lg:px-24 py-5 sm:py-8 lg:py-5 relative z-10 backdrop-blur-sm bg-slate-900/90 border-r border-white/5"
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="auth-panel-bg flex flex-col justify-center px-6 sm:px-10 lg:px-20 py-8 relative z-10 bg-card/60 backdrop-blur-xs border-r border-border"
             >
-                {/* Decorative ambient glows */}
-                <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-600/5 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 right-8 w-48 h-48 bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
-
-                <div>
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-3"
-                    >
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                <BsLightningChargeFill className="text-white text-lg sm:text-xl" />
+                <div className="max-w-md w-full mx-auto space-y-6">
+                    {/* Header bar */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+                                <Sparkles className="w-4 h-4" />
                             </div>
-                            <span className="font-bold text-xl sm:text-2xl text-white tracking-tight">EduBoard</span>
+                            <span className="font-semibold text-xl text-foreground tracking-tight">EduBoard</span>
                         </div>
-                        <Link to="/" className="text-sm text-slate-400 hover:text-white transition-colors">
-                            ← Back to Home
-                        </Link>
-                    </motion.div>
-
-                    <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight leading-tight">
-                        Welcome back to <br className="hidden sm:block lg:hidden" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Infinity.</span>
-                    </h2>
-                    <div className="w-10 h-0.5 bg-linear-to-r from-indigo-500 to-transparent rounded-full mb-3 sm:mb-4" />
-                    <p className="text-slate-400 text-sm sm:text-base lg:text-lg mb-3 sm:mb-5">Login to access your high-performance workspace.</p>
-                </div>
-
-                {error && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2"
-                    >
-                        <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
-                        {error}
-                    </motion.div>
-                )}
-
-                {successMessage && !error && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm flex items-center gap-2"
-                    >
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                        {successMessage}
-                    </motion.div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
-                    <div className="group">
-                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">Email Address</label>
-                        <div className="relative">
-                            <FaEnvelope className="absolute top-4 left-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                onBlur={handleEmailBlur}
-                                className="w-full input-glass pl-12 pr-4 py-3.5 rounded-xl focus:outline-none"
-                                placeholder="name@example.com"
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div className="group">
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Password</label>
-                            <Link to="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                                Forgot Password?
+                        <div className="flex items-center gap-3">
+                            <Link to="/" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                                ← {t('common.back')}
                             </Link>
                         </div>
-                        <div className="relative">
-                            <FaLock className="absolute top-4 left-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="w-full input-glass pl-12 pr-12 py-3.5 rounded-xl focus:outline-none"
-                                placeholder="••••••••"
-                                required
-                            />
-                            {showPassword ? (
-                                <FaEyeSlash className="absolute top-4 right-4 text-slate-500 cursor-pointer" onClick={() => setShowPassword(false)} />
-                            ) : (
-                                <FaEye className="absolute top-4 right-4 text-slate-500 cursor-pointer" onClick={() => setShowPassword(true)} />
-                            )}
+                    </div>
+
+                    <div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                            {t('auth.loginTitle')}
+                        </h2>
+                        <p className="text-muted-foreground text-sm mt-1">
+                            {t('auth.loginSubtitle')}
+                        </p>
+                    </div>
+
+                    {error && (
+                        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{error}</span>
                         </div>
+                    )}
+
+                    {successMessage && !error && (
+                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            <span>{successMessage}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-medium text-foreground">
+                                {t('auth.email')}
+                            </label>
+                            <div className="relative">
+                                <Mail className="w-4 h-4 absolute top-3 left-3 text-muted-foreground pointer-events-none" />
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    onBlur={handleEmailBlur}
+                                    className="w-full bg-background border border-input rounded-lg pl-9 pr-4 py-2 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring shadow-xs transition-colors"
+                                    placeholder="name@example.com"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                                <label className="block text-xs font-medium text-foreground">
+                                    {t('auth.password')}
+                                </label>
+                                <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                    {t('auth.forgotPassword')}
+                                </Link>
+                            </div>
+                            <div className="relative">
+                                <Lock className="w-4 h-4 absolute top-3 left-3 text-muted-foreground pointer-events-none" />
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="w-full bg-background border border-input rounded-lg pl-9 pr-10 py-2 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring shadow-xs transition-colors"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground p-0.5 rounded transition-colors cursor-pointer"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 mt-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                                    <span>{t('auth.signingIn')}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>{t('auth.loginBtn')}</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Quick Demo Access Buttons */}
+                    <div className="space-y-2 mt-4 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={handleDemoLogin}
+                            disabled={loading}
+                            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-purple-600/15 to-blue-600/15 hover:from-amber-500/25 hover:via-purple-600/25 hover:to-blue-600/25 border border-amber-500/40 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                        >
+                            <Sparkles className="w-4 h-4 text-amber-400" />
+                            <span>⚡ Demo Öğretmen Hesabı ile Keşfet</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDemoStudentLogin}
+                            disabled={loading}
+                            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-600/15 to-cyan-600/15 hover:from-emerald-500/25 hover:via-teal-600/25 hover:to-cyan-600/25 border border-emerald-500/40 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                        >
+                            <GraduationCap className="w-4 h-4 text-emerald-400" />
+                            <span>🎓 Demo Öğrenci Hesabı ile Keşfet</span>
+                        </button>
                     </div>
 
-                    <motion.button
-                        whileHover={{ scale: loading ? 1 : 1.02 }}
-                        whileTap={{ scale: loading ? 1 : 0.98 }}
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group transition-all mt-3 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        {loading ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                Sign In Details <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
-                            </>
-                        )}
-                    </motion.button>
-                </form>
-
-                <div className="mt-3 max-w-sm">
-                    <div className="flex items-center my-3">
-                        <div className="flex-grow border-t border-slate-800/60"></div>
-                        <span className="px-3 text-slate-500 text-xs uppercase tracking-wider">or</span>
-                        <div className="flex-grow border-t border-slate-800/60"></div>
+                    <div className="pt-3 border-t border-border text-center space-y-1.5 text-xs">
+                        <p className="text-muted-foreground">
+                            Öğrenci misiniz?{' '}
+                            <Link to="/signup" className="text-foreground font-semibold hover:underline">
+                                Öğrenci Kaydı →
+                            </Link>
+                        </p>
+                        <p className="text-muted-foreground">
+                            Öğretmen misiniz?{' '}
+                            <Link to="/signup-teacher" className="text-foreground font-semibold hover:underline">
+                                Öğretmen Kaydı →
+                            </Link>
+                        </p>
                     </div>
-                    <motion.button
-                        whileHover={{ scale: 1.02, boxShadow: '0 0 15px rgba(99, 102, 241, 0.15)' }}
-                        whileTap={{ scale: 0.98 }}
-                        type="button"
-                        onClick={handleGoogleClick}
-                        disabled={loading}
-                        className={`w-full bg-slate-800/40 hover:bg-slate-800/60 text-white font-semibold py-3.5 rounded-xl border border-slate-700/80 hover:border-slate-600 flex items-center justify-center gap-2 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        <GoogleIcon />
-                        Continue with Google
-                    </motion.button>
                 </div>
-
-                <p className="mt-4 text-slate-500 text-center text-sm">
-                    New to EduBoard?{' '}
-                    <Link to="/signup" className="text-white hover:text-indigo-300 transition-colors font-medium border-b border-indigo-500/30 hover:border-indigo-500">
-                        Create an account
-                    </Link>
-                </p>
             </motion.div>
 
-            {/* Right: Dynamic Character and Theme */}
-            <div className="hidden lg:flex relative items-center justify-center overflow-hidden">
-                {/* Background transitions */}
-                {/* Default Gradient */}
-                <div 
-                    className={`absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-950 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === null ? 'opacity-100' : 'opacity-0'
-                    }`}
-                />
-                {/* Student Gradient */}
-                <div 
-                    className={`absolute inset-0 bg-gradient-to-br from-slate-900 to-cyan-950 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === 'student' ? 'opacity-100' : 'opacity-0'
-                    }`}
-                />
-                {/* Teacher Gradient */}
-                <div 
-                    className={`absolute inset-0 bg-gradient-to-br from-slate-900 to-indigo-950 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === 'teacher' || detectedRole === 'admin' ? 'opacity-100' : 'opacity-0'
-                    }`}
-                />
+            {/* Right: Dynamic Theme Animated Digital Board */}
+            <div className="hidden lg:flex relative items-center justify-center overflow-hidden bg-slate-950 p-8">
+                {/* Background Glows */}
+                <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
-                {/* Decorative background elements - Default Theme */}
-                <div 
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === null ? 'opacity-30' : 'opacity-0 pointer-events-none'
-                    }`}
-                >
-                    <div className="absolute top-10 left-10 w-20 h-20 bg-slate-700 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-20 right-20 w-32 h-32 bg-slate-800 rounded-full blur-3xl"></div>
-                    <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-indigo-950 rounded-full blur-3xl"></div>
-                </div>
+                <div className="relative z-10 w-full max-w-lg flex flex-col items-center">
+                    {/* Interactive Animated Board Mockup */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl p-4 sm:p-5 backdrop-blur-xl relative overflow-hidden"
+                    >
+                        {/* Chrome pattern subtle overlay */}
+                        <div className="absolute inset-0 chrome-pattern opacity-30 pointer-events-none" />
 
-                {/* Decorative background elements - Student Theme */}
-                <div 
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === 'student' ? 'opacity-30' : 'opacity-0 pointer-events-none'
-                    }`}
-                >
-                    <div className="absolute top-10 right-10 w-24 h-24 bg-cyan-400 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-20 left-20 w-32 h-32 bg-blue-400 rounded-full blur-3xl"></div>
-                    <div className="absolute top-1/2 right-1/3 w-20 h-20 bg-purple-400 rounded-full blur-3xl"></div>
-                </div>
+                        {/* Board Window Bar */}
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 relative z-10">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                                <span className="text-[11px] font-mono text-slate-400 ml-2 font-medium">EduBoard Live Canvas</span>
+                            </div>
 
-                {/* Decorative background elements - Teacher Theme */}
-                <div 
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                        detectedRole === 'teacher' || detectedRole === 'admin' ? 'opacity-30' : 'opacity-0 pointer-events-none'
-                    }`}
-                >
-                    <div className="absolute top-10 left-10 w-20 h-20 bg-indigo-400 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-20 right-20 w-32 h-32 bg-purple-400 rounded-full blur-3xl"></div>
-                    <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-cyan-400 rounded-full blur-3xl"></div>
-                </div>
+                            <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                    Canlı Ders
+                                </span>
+                            </div>
+                        </div>
 
-                <div className="relative z-10 w-full max-w-lg px-8">
-                    <AnimatePresence mode="wait">
-                        {detectedRole === 'student' ? (
-                            <motion.div
-                                key="student-login-panel"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                transition={{ duration: 0.4 }}
-                                className="flex flex-col items-center"
-                            >
-                                <StudentCharacter className="w-full h-auto" />
-                                <div className="mt-4 text-center">
-                                    <h3 className="text-2xl font-bold text-white mb-3">
-                                        Welcome Back, Scholar! 🚀
-                                    </h3>
-                                    <p className="text-slate-300 text-lg">
-                                        Jump back into your boards and collaborate with teachers and peers.
-                                    </p>
+                        {/* Interactive Canvas Simulation Area */}
+                        <div 
+                            className="w-full h-52 rounded-xl bg-slate-950/80 border border-slate-800 relative overflow-hidden flex flex-col justify-between p-3 select-none"
+                            style={{
+                                backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
+                                backgroundSize: '18px 18px'
+                            }}
+                        >
+                            {/* Animated SVG Vector Drawing (Sine Wave & Geometric Curve) */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#06b6d4" />
+                                        <stop offset="50%" stopColor="#6366f1" />
+                                        <stop offset="100%" stopColor="#a855f7" />
+                                    </linearGradient>
+                                </defs>
+                                <motion.path
+                                    d="M 20 120 Q 80 40, 160 110 T 300 70 T 420 120"
+                                    fill="none"
+                                    stroke="url(#neonGradient)"
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    transition={{ duration: 2.5, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                                />
+                                <motion.circle
+                                    cx="160"
+                                    cy="110"
+                                    r="5"
+                                    fill="#06b6d4"
+                                    animate={{ scale: [1, 1.4, 1] }}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                />
+                                <motion.circle
+                                    cx="300"
+                                    cy="70"
+                                    r="5"
+                                    fill="#a855f7"
+                                    animate={{ scale: [1, 1.4, 1] }}
+                                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                                />
+                            </svg>
+
+                            {/* Floating Glass Chips on Canvas */}
+                            <div className="flex items-center justify-between relative z-10">
+                                <motion.div 
+                                    animate={{ y: [0, -3, 0] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700/80 backdrop-blur-md text-[11px] text-slate-200 flex items-center gap-1.5 shadow-md"
+                                >
+                                    <PenTool className="w-3 h-3 text-cyan-400" />
+                                    <span>Akıllı Kalem Modu</span>
+                                </motion.div>
+
+                                <motion.div
+                                    animate={{ y: [0, 3, 0] }}
+                                    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                                    className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md text-[11px] text-indigo-300 font-mono flex items-center gap-1 shadow-md"
+                                >
+                                    <span>y = 2x² + 5</span>
+                                </motion.div>
+                            </div>
+
+                            {/* Bottom Canvas Tools & Online Users Bar */}
+                            <div className="flex items-center justify-between relative z-10 pt-2 border-t border-slate-800/60">
+                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                    <Users className="w-3.5 h-3.5 text-primary" />
+                                    <span>28 Öğrenci Katıldı</span>
                                 </div>
-                            </motion.div>
-                        ) : detectedRole === 'teacher' || detectedRole === 'admin' ? (
-                            <motion.div
-                                key="teacher-login-panel"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.4 }}
-                                className="flex flex-col items-center"
-                            >
-                                <TeacherCharacter className="w-full h-auto" />
-                                <div className="mt-4 text-center">
-                                    <h3 className="text-2xl font-bold text-white mb-3">
-                                        Welcome Back, Educator! 🎓
-                                    </h3>
-                                    <p className="text-slate-300 text-lg">
-                                        Continue inspiring students with interactive lessons
-                                    </p>
+                                <div className="flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-800 text-[10px] text-slate-400 font-mono">
+                                    <span>Oda: EDU-LIVE-8X</span>
                                 </div>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="default-login-panel"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.4 }}
-                                className="flex flex-col items-center"
-                            >
-                                <TeacherCharacter className="w-full h-auto" />
-                                <div className="mt-4 text-center">
-                                    <h3 className="text-2xl font-bold text-white mb-3">
-                                        Welcome to EduBoard! 
-                                    </h3>
-                                    <p className="text-slate-300 text-lg">
-                                        Access your high-performance collaborative digital workspace.
-                                    </p>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            </div>
+                        </div>
+
+                        {/* Feature Badges under Canvas */}
+                        <div className="grid grid-cols-3 gap-2 mt-3 pt-2 text-center text-[10px] text-slate-400">
+                            <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-center gap-1 text-slate-300">
+                                <Presentation className="w-3 h-3 text-primary" />
+                                <span>Canlı Tahta</span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-center gap-1 text-slate-300">
+                                <Layers className="w-3 h-3 text-cyan-400" />
+                                <span>İnteraktif Araçlar</span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-center gap-1 text-slate-300">
+                                <Radio className="w-3 h-3 text-emerald-400" />
+                                <span>Anlık Senkron</span>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Text below animation */}
+                    <div className="mt-6 text-center space-y-1.5">
+                        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                            {detectedRole === 'student' 
+                                ? 'Sınıfına Bağlan, Tahtanı Canlı Takip Et!'
+                                : detectedRole === 'teacher' || detectedRole === 'admin'
+                                ? 'Öğretmen Paneli & İnteraktif Sınıf Yönetimi'
+                                : 'EduBoard İnteraktif Dijital Tahta'}
+                        </h3>
+                        <p className="text-slate-400 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+                            Gerçek zamanlı iş birliği, akıllı çizim araçları ve ders materyalleriyle yeni nesil eğitim deneyimi.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

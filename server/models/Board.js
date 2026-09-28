@@ -13,7 +13,14 @@ const boardSchema = new mongoose.Schema({
         joinedAt: { type: Date, default: Date.now }
     }],
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    color: { type: String, default: '#6366f1' },
+    order: { type: Number, default: 0 },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null, index: true },
+    isPasswordProtected: { type: Boolean, default: false },
+    passwordHash: { type: String, default: null },
+    boardDate: { type: Date, default: Date.now },
+    groupTitle: { type: String, default: '', trim: true }
 });
 
 module.exports = mongoose.model('Board', boardSchema);

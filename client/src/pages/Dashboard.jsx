@@ -1,569 +1,384 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
-import api from "../lib/api";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
-    FaSignInAlt,
-    FaSignOutAlt,
-    FaRocket,
-    FaFolder,
-    FaClock,
-    FaTrash,
-    FaCopy,
-    FaCheck,
-} from "react-icons/fa";
-import { BsLightningChargeFill } from "react-icons/bs";
-import { motion } from "framer-motion";
-import CreateBoardModal from "../components/CreateBoardModal";
+  Presentation,
+  BookOpen,
+  Award,
+  CalendarCheck,
+  Megaphone,
+  MessageSquare,
+  ArrowRight,
+  School,
+  User,
+  Clock,
+  Lock,
+  Sparkles
+} from 'lucide-react';
+import api from '../lib/api';
+import DashboardLayout from '../components/DashboardLayout';
 import {
-    FaPlus,
-    FaUsers,
-    FaBookOpen,
-    FaChartLine,
-    FaHistory,
-} from "react-icons/fa";
+  StatCard,
+  Card,
+  CardContent,
+  Badge,
+  EmptyState,
+  Button,
+  AnimatedItem,
+  AnimatedGreeting
+} from '../components/ui';
 
 const Dashboard = () => {
-    const [roomId, setRoomId] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [savedBoards, setSavedBoards] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [copiedBoardId, setCopiedBoardId] = useState(null);
-    const navigate = useNavigate();
-    const location = useLocation();
-    const user = JSON.parse(localStorage.getItem("user"));
-    const isTeacher = user?.role === "teacher";
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    // Redirect admin to admin panel if they somehow reach this page
-    useEffect(() => {
-        if (user?.role === "admin") {
-            navigate("/admin", { replace: true });
-        }
-    }, [user, navigate]);
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [classBoards, setClassBoards] = useState([]);
+  const [assignmentsSummary, setAssignmentsSummary] = useState({ total: 0, active: 0, individual: 0 });
+  const [recentExams, setRecentExams] = useState([]);
+  const [attendanceStats, setAttendanceStats] = useState({ absent: 0, late: 0, rate: 100 });
+  const [unreadAnnouncementsCount, setUnreadAnnouncementsCount] = useState(0);
+  const [pendingMeetingCount, setPendingMeetingCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-    // Fetch saved boards for both teachers and students
-    useEffect(() => {
-        if (user?.id) {
-            fetchSavedBoards();
-        } else {
-            setLoading(false);
-        }
-    }, [user?.id, location.pathname]);
+  // Pairing state for unpaired students
+  const [pairingInput, setPairingInput] = useState('');
+  const [pairingLoading, setPairingLoading] = useState(false);
+  const [pairingMessage, setPairingMessage] = useState(null);
 
-    async function fetchSavedBoards() {
+  useEffect(() => {
+    fetchStudentDashboard();
+  }, []);
+
+  const fetchStudentDashboard = async () => {
+    setLoading(true);
+    try {
+      const profileRes = await api.get('/api/students/me');
+      const prof = profileRes.data;
+      setStudentProfile(prof);
+
+      if (prof && prof.classId) {
+        const classId = typeof prof.classId === 'object' ? prof.classId?._id : prof.classId;
+
+        // Boards
         try {
-            let res;
-            if (isTeacher) {
-                // Teachers: fetch boards they created
-                res = await api.get(`/api/boards/user/${user.id}`);
-            } else {
-                // Students: fetch their saved boards (independent copies)
-                res = await api.get(`/api/boards/saved/${user.id}`);
-            }
-            setSavedBoards(res.data);
-        } catch (err) {
-            console.error("Error fetching boards:", err);
-        } finally {
-            setLoading(false);
+          const boardsRes = await api.get('/api/boards/student/my-boards');
+          if (boardsRes.data && boardsRes.data.length > 0) {
+            setClassBoards(boardsRes.data);
+          } else if (classId) {
+            const fallbackRes = await api.get(`/api/boards/class/${classId}`);
+            setClassBoards(fallbackRes.data || []);
+          }
+        } catch (e) {
+          if (classId) {
+            const fallbackRes = await api.get(`/api/boards/class/${classId}`).catch(() => ({ data: [] }));
+            setClassBoards(fallbackRes.data || []);
+          }
         }
+
+        // Assignments
+        try {
+          const assRes = await api.get('/api/assignments/student');
+          const assList = assRes.data || [];
+          const activeCount = assList.filter(a => a.studentStatus !== 'completed').length;
+          const indCount = assList.filter(a => a.isIndividual).length;
+          setAssignmentsSummary({
+            total: assList.length,
+            active: activeCount,
+            individual: indCount
+          });
+        } catch (e) {}
+
+        // Exams
+        try {
+          const exRes = await api.get('/api/exams/student');
+          setRecentExams(exRes.data || []);
+        } catch (e) {}
+
+        // Attendance
+        try {
+          const attRes = await api.get(`/api/attendance/student/${prof._id}`);
+          setAttendanceStats({
+            absent: attRes.data.absent || 0,
+            late: attRes.data.late || 0,
+            rate: attRes.data.attendanceRate ?? 100
+          });
+        } catch (e) {}
+
+        // Announcements
+        try {
+          const annRes = await api.get('/api/announcements/student');
+          const unread = (annRes.data || []).filter(a => !a.isRead).length;
+          setUnreadAnnouncementsCount(unread);
+        } catch (e) {}
+
+        // Meetings
+        try {
+          const meetRes = await api.get('/api/meetings/student');
+          const waiting = (meetRes.data || []).filter(m => m.status === 'waiting_teacher').length;
+          setPendingMeetingCount(waiting);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.error('Error loading student dashboard:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const generateRoomId = () => {
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        const randomStr = (len) =>
-            Array.from(
-                { length: len },
-                () => chars[Math.floor(Math.random() * chars.length)],
-            ).join("");
-        return `EDU-${randomStr(4)}-${randomStr(4)}`;
-    };
+  const handlePairClass = async (e) => {
+    e.preventDefault();
+    if (!pairingInput.trim()) return;
 
-    const handleCreateBoard = async (boardName) => {
-        try {
-            const newRoomId = generateRoomId();
-            const payload = {
-                name: boardName,
-                userId: user.id,
-                roomId: newRoomId,
-            };
-            const response = await api.post("/api/boards/create", payload);
-            setIsModalOpen(false);
-            navigate(`/board/${newRoomId}`);
-        } catch (err) {
-            console.error("Error creating board:", err);
-            console.error("Error response:", err.response?.data);
-            alert("Failed to create board. Please try again.");
-        }
-    };
+    setPairingLoading(true);
+    setPairingMessage(null);
+    try {
+      const res = await api.post('/api/students/pair', {
+        matchingCode: pairingInput.trim().toUpperCase()
+      });
+      setPairingMessage({
+        type: res.data.pending ? 'pending' : 'success',
+        text: res.data.message || (res.data.pending ? 'Eşleşme talebi öğretmene iletildi. Onaylandıktan sonra sınıfa dahil edileceksiniz' : 'Sınıf eşleşmesi başarıyla yapıldı!')
+      });
+      fetchStudentDashboard();
+      setPairingInput('');
+    } catch (err) {
+      setPairingMessage({ type: 'error', text: err.response?.data?.message || 'Eşleşme kodu geçersiz' });
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
-    const openBoard = (roomId) => {
-        navigate(`/board/${roomId}`);
-    };
+  const lastExam = recentExams.length > 0 ? recentExams[0] : null;
+  const classObj = studentProfile?.classId && typeof studentProfile.classId === 'object' ? studentProfile.classId : null;
 
-    const handleDeleteBoard = async (roomId, boardName, boardId, e) => {
-        e.stopPropagation();
+  return (
+    <DashboardLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="space-y-8"
+      >
+        {/* Welcome & Sınıfım Hero Banner */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card text-card-foreground p-7 sm:p-9 shadow-sm chrome-pattern">
+          {/* Decorative Ambient Glow */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
-        if (!window.confirm(`Are you sure you want to delete "${boardName}"?`)) {
-            return;
-        }
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-xl">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Badge variant="primary" size="sm" dot>
+                  Öğrenci Portalı
+                </Badge>
+                <span className="text-xs text-muted-foreground/80 font-medium px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/60">
+                  {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <AnimatedGreeting
+                prefix="Merhaba,"
+                name={studentProfile?.firstName ? `${studentProfile.firstName} ${studentProfile.lastName || ''}`.trim() : (user?.username || 'Öğrenci')}
+              />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Ders tahtalarınıza, ödevlerinize ve sınav sıralamalarınıza buradan anında ulaşabilirsiniz.
+              </p>
+            </div>
 
-        try {
-            if (isTeacher) {
-                // Teachers: delete the actual board
-                try {
-                    console.log("[DELETE] Teacher deleting board by roomId:", roomId);
-                    await api.delete(`/api/boards/${roomId}`);
-                } catch (err) {
-                    // If delete by roomId fails, try by _id (for orphaned boards)
-                    if (err.response?.status === 404) {
-                        console.log(
-                            "[DELETE] Teacher deleting board by _id with force:",
-                            boardId,
-                        );
-                        await api.delete(`/api/boards/by-id/${boardId}?force=true`);
-                    } else {
-                        throw err;
-                    }
-                }
-            } else {
-                // Students: delete their saved copy
-                // Students: delete their saved copy
-                await api.delete(`/api/boards/saved/${boardId}`);
-            }
-            fetchSavedBoards();
-        } catch (err) {
-            console.error("Error deleting board:", err);
-            console.error("Error response:", err.response?.data);
-            alert(
-                `Failed to delete board: ${err.response?.data?.message || err.message}`,
-            );
-        }
-    };
-
-    const joinMeeting = async (e) => {
-        e.preventDefault();
-        const code = roomId.trim().toUpperCase();
-
-        if (!code) return;
-
-        // Validation - ensure either standard UUID or EDU-XXXX-XXXX format
-        // (to remain backwards compatible with old boards while strictly checking new ones)
-        const isEduPattern = /^EDU-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code);
-        const isUUIDPattern =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                code,
-            );
-
-        if (!isEduPattern && !isUUIDPattern) {
-            alert("Invalid room code format. Expected format: EDU-XXXX-XXXX");
-            return;
-        }
-
-        try {
-            const response = await api.get(`/api/boards/${code}`);
-            if (response.data) {
-                navigate(`/board/${code}`);
-            } else {
-                alert("Room code is invalid or room no longer exists.");
-            }
-        } catch (err) {
-            alert("Room code is invalid or room no longer exists.");
-        }
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-    };
-
-    const handleCopyLink = (roomId, e) => {
-        e.stopPropagation();
-        const boardUrl = `${window.location.origin}/whiteboard/${roomId}`;
-        navigator.clipboard
-            .writeText(boardUrl)
-            .then(() => {
-                setCopiedBoardId(roomId);
-                setTimeout(() => setCopiedBoardId(null), 2000);
-            })
-            .catch((err) => {
-                console.error("Failed to copy:", err);
-            });
-    };
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return "Today";
-        if (diffDays === 1) return "Yesterday";
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return date.toLocaleDateString();
-    };
-    const statsCards = [
-        {
-            title: "Total Saved Boards",
-            value: savedBoards.length,
-            icon: <FaFolder />,
-            iconColor: "text-indigo-400",
-            glow: "from-indigo-500/20 to-purple-500/20",
-            border: "border-indigo-500/20",
-        },
-    ];
-
-    const recentBoards = savedBoards.slice(0, 4);
-    return (
-        <div className="min-h-screen p-4 sm:p-6 md:p-8 flex flex-col max-w-7xl mx-auto">
-            {/* Header */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 sm:mb-12 border-b border-white/5 pb-4 sm:pb-6 gap-4 sm:gap-0">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight flex items-center gap-2 sm:gap-3">
-                        <BsLightningChargeFill className="text-indigo-500 text-xl sm:text-2xl" />{" "}
-                        EduBoard{" "}
-                        <span className="text-xs px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded border border-indigo-500/20 font-mono font-normal tracking-wide">
-                            PRO
-                        </span>
-                    </h1>
-                    <p className="text-slate-400 font-light text-sm sm:text-base">
-                        Collaborative workspace & infinite canvas
-                    </p>
+          {/* Sınıfım Info Box or Pending / Unassigned Box */}
+          {studentProfile?.status === 'pending' || studentProfile?.pendingClassId ? (
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 text-foreground text-xs space-y-2 max-w-sm">
+              <div className="flex items-center gap-1.5 font-semibold text-primary">
+                <Clock className="w-3.5 h-3.5 animate-spin-slow shrink-0" />
+                <span>Eşleşme Talebi Beklemede</span>
+              </div>
+              <p className="text-[11px] text-foreground font-medium leading-relaxed">
+                Eşleşme talebi öğretmene iletildi. Onaylandıktan sonra sınıfa dahil edileceksiniz.
+              </p>
+              {studentProfile?.pendingClassId && (
+                <div className="text-[10px] text-muted-foreground bg-background/60 border border-border/60 rounded-md p-1.5 flex items-center justify-between">
+                  <span>Talep Edilen Sınıf:</span>
+                  <span className="font-semibold text-foreground">
+                    {studentProfile.pendingClassId.name || `${studentProfile.pendingClassId.grade}/${studentProfile.pendingClassId.section}`}
+                  </span>
                 </div>
-                <div className="flex items-center gap-3 sm:gap-6 self-end sm:self-auto">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-white font-medium">{user?.username}</p>
-                        <p className="text-xs text-slate-500 font-mono uppercase">
-                            {user?.role || "Student"}
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="p-2 sm:p-3 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors border border-transparent hover:border-white/10"
-                    >
-                        <FaSignOutAlt />
-                    </button>
-                </div>
-            </header>
-            {/* Dashboard Overview */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8"
-            >
-                {/* Stats Cards */}
-                <div className="lg:col-span-1 space-y-4">
-                    {statsCards.map((card, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            transition={{ type: "spring", stiffness: 260 }}
-                            className={`relative overflow-hidden rounded-2xl border ${card.border} bg-white/[0.03] backdrop-blur-xl p-6 group`}
-                        >
-                            {/* Glow */}
-                            <div
-                                className={`absolute inset-0 bg-gradient-to-br ${card.glow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
-                            />
-
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div>
-                                    <p className="text-slate-400 text-sm mb-2">{card.title}</p>
-
-                                    <h3 className="text-4xl font-bold text-white tracking-tight">
-                                        {card.value}
-                                    </h3>
-                                </div>
-
-                                <div
-                                    className={`w-14 h-14 rounded-2xl border border-white/10 flex items-center justify-center bg-black/20 text-2xl ${card.iconColor} group-hover:scale-110 transition-transform`}
-                                >
-                                    {card.icon}
-                                </div>
-                            </div>
-
-                            {/* Accent Line */}
-                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-                        </motion.div>
-                    ))}
-                </div>
-
-                {/* Recent Activity */}
-                <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    className="lg:col-span-2 surface-card rounded-3xl p-6 border border-white/10"
+              )}
+            </div>
+          ) : classObj ? (
+            <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-1.5 min-w-[240px]">
+              <div className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                <School className="w-3.5 h-3.5" /> Sınıfım
+              </div>
+              <h3 className="font-semibold text-foreground text-base">
+                {classObj.name || (classObj.grade ? `${classObj.grade}/${classObj.section}` : 'Sınıfım')}
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">
+                {classObj.schoolName || 'Okul'}
+              </p>
+              <div className="text-xs text-muted-foreground pt-1.5 border-t border-border/60 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="truncate">{classObj.teacherName || studentProfile?.teacherId?.username || 'Öğretmen'}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-foreground text-xs space-y-2.5 max-w-sm">
+              <div className="flex items-center gap-1.5 font-semibold text-amber-500">
+                <School className="w-3.5 h-3.5" />
+                <span>Henüz bir sınıfa eşleşmediniz</span>
+              </div>
+              <form onSubmit={handlePairClass} className="flex gap-2">
+                <input
+                  type="text"
+                  value={pairingInput}
+                  onChange={(e) => setPairingInput(e.target.value.toUpperCase())}
+                  placeholder="Sınıf Kodu (EDU-2C-A7K9)"
+                  className="px-3 py-1.5 rounded-lg bg-background border border-input text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring flex-1"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="xs"
+                  loading={pairingLoading}
+                  disabled={!pairingInput.trim()}
                 >
-                    <div className="flex items-center gap-3 mb-5">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                            <FaHistory className="text-indigo-400 text-lg" />
-                        </div>
-
-                        <div>
-                            <h3 className="text-xl font-bold text-white">Recent Activity</h3>
-
-                            <p className="text-slate-500 text-sm">Recently accessed boards</p>
-                        </div>
-                    </div>
-
-                    {recentBoards.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-center">
-                            <FaFolder className="text-slate-600 text-4xl mb-3" />
-
-                            <p className="text-slate-400">No recent activity yet</p>
-
-                            <p className="text-slate-600 text-sm mt-1">
-                                Your recent boards will appear here
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            {/* Timeline vertical line */}
-                            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-indigo-500/40 via-indigo-400/20 to-transparent" />
-                            <div className="space-y-0">
-                                {recentBoards.map((board, idx) => {
-                                    const isRecent = Date.now() - new Date(board.updatedAt || board.createdAt).getTime() < 3600000;
-                                    return (
-                                        <motion.div
-                                            key={board.roomId}
-                                            whileHover={{ x: 4 }}
-                                            onClick={() => openBoard(board.roomId)}
-                                            className="relative flex items-center justify-between p-4 pl-12 rounded-2xl hover:bg-white/[0.06] border-transparent hover:border-white/5 cursor-pointer transition-all group"
-                                        >
-                                            {/* Timeline dot */}
-                                            <div className={`absolute left-[13px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 ${isRecent ? 'bg-indigo-400 border-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]' : 'bg-gray-700 border-gray-600'}`} />
-
-                                            {/* Recency badge */}
-                                            {isRecent && (
-                                                <div className="absolute top-1 right-0">
-                                                    <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">Now</span>
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                                                    <FaFolder className="text-indigo-400 text-sm" />
-                                                </div>
-
-                                                <div>
-                                                    <h4 className="text-white text-sm font-medium">
-                                                        {isTeacher
-                                                            ? board.name || "Untitled Board"
-                                                            : board.boardName || "Untitled Board"}
-                                                    </h4>
-
-                                                    <p className="text-slate-500 text-xs mt-1 flex items-center gap-1.5">
-                                                        <FaClock className="text-[10px]" />
-                                                        {formatDate(board.updatedAt || board.createdAt)}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-slate-500 group-hover:text-indigo-400 transition-colors">
-                                                →
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </motion.div>
-            </motion.div>
-            {/* Bento Grid */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className={`grid grid-cols-1 ${isTeacher ? "lg:grid-cols-3 lg:grid-rows-2" : "md:grid-cols-1"} gap-4 sm:gap-6 ${isTeacher ? "lg:h-[600px]" : "h-auto"}`}
-            >
-                {/* Main Action: New Board (Large) - Teachers Only */}
-                {isTeacher && (
-                    <motion.div
-                        whileHover={{ scale: 1.01 }}
-                        className="lg:col-span-2 lg:row-span-2 surface-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group cursor-pointer min-h-[300px] sm:min-h-[400px]"
-                        onClick={() => setIsModalOpen(true)}
-                    >
-                        <div className="absolute top-0 right-0 w-[300px] sm:w-[400px] h-[300px] sm:h-[400px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/30 transition-all duration-700"></div>
-
-                        <div className="relative z-10">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/5 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/10 text-indigo-400 mb-4 sm:mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
-                                <FaPlus className="text-xl sm:text-2xl" />
-                            </div>
-                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 tracking-tight">
-                                Create New <br className="hidden sm:block" /> Whiteboard
-                            </h2>
-                            <p className="text-slate-400 text-sm sm:text-base lg:text-lg max-w-md font-light">
-                                Start a new session on an infinite high-performance canvas.
-                                Optimized for teaching and sketching.
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-2 sm:gap-3 text-indigo-400 font-medium mt-6 sm:mt-8 group-hover:translate-x-2 transition-transform text-sm sm:text-base">
-                            Launch Editor <FaRocket />
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Student Message - Students Only */}
-                {!isTeacher && (
-                    <div className="surface-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-4 sm:mb-6">
-                        <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
-                                <FaSignInAlt className="text-cyan-400 text-lg sm:text-xl" />
-                            </div>
-                            <h3 className="text-xl sm:text-2xl font-bold text-white">
-                                Student Access
-                            </h3>
-                        </div>
-                        <p className="text-slate-400 text-sm sm:text-base">
-                            As a student, you can join whiteboards shared by your teachers
-                            using the room code below.
-                        </p>
-                    </div>
-                )}
-
-                {/* Join Session - Students Only */}
-                {!isTeacher && (
-                    <div className="surface-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-center relative overflow-hidden">
-                        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500"></div>
-                        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 flex items-center gap-2">
-                            <FaSignInAlt className="text-cyan-400" /> Join Session
-                        </h3>
-                        <p className="text-slate-500 text-xs sm:text-sm mb-4 sm:mb-6">
-                            Enter a room code to connect.
-                        </p>
-
-                        <form onSubmit={joinMeeting} className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="Room ID..."
-                                value={roomId}
-                                onChange={(e) => setRoomId(e.target.value)}
-                                className="bg-black/50 border border-white/10 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-white w-full focus:outline-none focus:border-cyan-500/50 transition-colors font-mono text-xs sm:text-sm"
-                            />
-                            <button className="bg-white/10 hover:bg-white/20 text-white p-2.5 sm:p-3 rounded-lg border border-white/10 transition-all">
-                                →
-                            </button>
-                        </form>
-                    </div>
-                )}
-
-                {/* Saved Boards List - Both Teachers and Students */}
-                <div className="lg:row-span-2 surface-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col relative overflow-hidden min-h-[300px] sm:min-h-[400px]">
-                    <div className="flex justify-between items-start mb-3 sm:mb-4">
-                        <div>
-                            <h3 className="text-lg sm:text-xl font-bold text-white mb-1 flex items-center gap-2">
-                                <FaFolder className="text-indigo-400 text-base sm:text-lg" />{" "}
-                                Saved Boards
-                            </h3>
-                            <p className="text-slate-500 text-xs">
-                                {isTeacher
-                                    ? "Your recent whiteboards"
-                                    : "Boards from classes you attended"}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Boards List */}
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        {loading ? (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                            </div>
-                        ) : savedBoards.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-32 text-center">
-                                <FaFolder className="text-slate-600 text-3xl mb-2" />
-                                <p className="text-slate-500 text-sm">No saved boards yet</p>
-                                <p className="text-slate-600 text-xs mt-1">
-                                    {isTeacher
-                                        ? "Create your first board to get started"
-                                        : "Join a class to see boards here"}
-                                </p>
-                            </div>
-                        ) : (
-                            savedBoards.map((board) => (
-                                <motion.div
-                                    key={board.roomId}
-                                    whileHover={{ scale: 1.02, x: 4 }}
-                                    onClick={() => openBoard(board.roomId)}
-                                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-4 cursor-pointer transition-all group"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-white font-medium text-sm truncate group-hover:text-indigo-400 transition-colors">
-                                                {isTeacher
-                                                    ? board.name || "Untitled Board"
-                                                    : board.boardName || "Untitled Board"}
-                                            </h4>
-                                            {!isTeacher && board.teacherName && (
-                                                <p className="text-slate-500 text-xs mt-1">
-                                                    Teacher: {board.teacherName}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {isTeacher && (
-                                                <button
-                                                    onClick={(e) => handleCopyLink(board.roomId, e)}
-                                                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all ${copiedBoardId === board.roomId
-                                                            ? "bg-green-500/20 text-green-400"
-                                                            : "bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400"
-                                                        }`}
-                                                    title="Copy board link"
-                                                >
-                                                    {copiedBoardId === board.roomId ? (
-                                                        <>
-                                                            <FaCheck className="text-xs sm:text-sm" />
-                                                            <span className="hidden sm:inline text-xs font-medium">
-                                                                Copied!
-                                                            </span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FaCopy className="text-xs sm:text-sm" />
-                                                            <span className="hidden sm:inline text-xs font-medium">
-                                                                Copy Link
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={(e) =>
-                                                    handleDeleteBoard(
-                                                        board.roomId,
-                                                        isTeacher
-                                                            ? board.name || "Untitled Board"
-                                                            : board.boardName || "Untitled Board",
-                                                        board._id,
-                                                        e,
-                                                    )
-                                                }
-                                                className="p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                                                title={isTeacher ? "Delete board" : "Remove from saved"}
-                                            >
-                                                <FaTrash className="text-xs" />
-                                            </button>
-                                            <div className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                →
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
-                        )}
-                    </div>
+                  Eşleş
+                </Button>
+              </form>
+              <p className="text-[11px] font-medium text-amber-500/90 flex items-center gap-1">
+                <span>⚠️</span> Öğretmeninizden sınıf eşleştirme kodunuzu talep ediniz.
+              </p>
+              {pairingMessage && (
+                <div className={`p-2 rounded-lg border text-[11px] font-medium ${
+                  pairingMessage.type === 'pending'
+                    ? 'bg-primary/10 border-primary/20 text-primary'
+                    : pairingMessage.type === 'success'
+                    ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+                    : 'text-destructive bg-destructive/10 border-destructive/20'
+                }`}>
+                  {pairingMessage.text}
                 </div>
-            </motion.div>
-
-            {/* Create Board Modal */}
-            <CreateBoardModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onCreateBoard={handleCreateBoard}
-            />
+              )}
+            </div>
+          )}
+          </div>
         </div>
-    );
+
+        {/* Dashboard Summary Cards with Staggered Entrance */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <AnimatedItem index={0} stagger={0.05}>
+            <StatCard
+              title="Aktif Ödevler"
+              value={`${assignmentsSummary.active}`}
+              icon={BookOpen}
+              color="emerald"
+              description={`Toplam: ${assignmentsSummary.total}${assignmentsSummary.individual > 0 ? ` • ${assignmentsSummary.individual} Bireysel` : ''}`}
+              onClick={() => navigate('/my-assignments')}
+            />
+          </AnimatedItem>
+
+          <AnimatedItem index={1} stagger={0.05}>
+            <StatCard
+              title="Son Sınav Sonucu"
+              value={lastExam && lastExam.myScore !== null ? `${lastExam.myScore} / ${lastExam.maxScore}` : '—'}
+              icon={Award}
+              color="amber"
+              description={lastExam ? `${lastExam.subject}${lastExam.rank ? ` • ${lastExam.rank}. Sıra` : ''}` : 'Sınav sonucu yok'}
+              onClick={() => navigate('/my-exams')}
+            />
+          </AnimatedItem>
+
+          <AnimatedItem index={2} stagger={0.05}>
+            <StatCard
+              title="Devamsızlık"
+              value={`${attendanceStats.absent} Gün`}
+              icon={CalendarCheck}
+              color="sky"
+              description={`Geç: ${attendanceStats.late} • Katılım: %${attendanceStats.rate}`}
+              onClick={() => navigate('/my-attendance')}
+            />
+          </AnimatedItem>
+
+          <AnimatedItem index={3} stagger={0.05}>
+            <StatCard
+              title="Duyurular"
+              value={`${unreadAnnouncementsCount}`}
+              icon={Megaphone}
+              color="indigo"
+              description={pendingMeetingCount > 0 ? `${pendingMeetingCount} görüşme yanıtı bekleniyor` : 'Görüşme talepleri güncel'}
+              onClick={() => navigate('/my-announcements')}
+            />
+          </AnimatedItem>
+        </div>
+
+        {/* MEVCUT TAHTALAR */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
+                <Presentation className="w-4 h-4 text-muted-foreground" /> Mevcut Tahtalar ({classBoards.length})
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Öğretmeninizin sınıfınız için oluşturduğu aktif ders tahtaları.
+              </p>
+            </div>
+
+            <Link to="/my-boards" className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1 group transition-colors">
+              <span>Tümünü Gör</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground text-xs">Tahtalar yükleniyor...</div>
+          ) : classBoards.length === 0 ? (
+            <Card className="border-dashed border-border bg-muted/20">
+              <CardContent className="py-12 text-center space-y-2">
+                <p className="text-foreground text-sm font-semibold">Henüz aktif bir sınıf tahtası bulunmuyor.</p>
+                <p className="text-muted-foreground text-xs">Öğretmeniniz yeni bir tahta başlattığında burada görünecektir.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classBoards.slice(0, 6).map((board, idx) => (
+                <AnimatedItem key={board.roomId} index={idx} stagger={0.05}>
+                  <motion.div
+                    whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/board/${board.roomId}`)}
+                    className="p-5 rounded-xl bg-card hover:bg-muted/40 border border-border transition-colors cursor-pointer group space-y-3 shadow-xs flex flex-col justify-between"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors line-clamp-1">
+                          {board.name}
+                        </h3>
+                        {board.isPasswordProtected && (
+                          <Badge variant="warning" size="sm" icon={Lock}>
+                            Şifreli
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        {new Date(board.boardDate || board.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{board.createdBy?.username || 'Öğretmen'}</span>
+                      <span className="text-foreground font-medium text-xs group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                        Tahtaya Gir <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </motion.div>
+                </AnimatedItem>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </DashboardLayout>
+  );
 };
 
 export default Dashboard;

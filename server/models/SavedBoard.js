@@ -6,7 +6,9 @@ const savedBoardSchema = new mongoose.Schema({
     roomId: { type: String, required: true },
     teacherName: { type: String },
     elements: { type: Array, default: [] }, // Snapshot of board at time of saving
-    savedAt: { type: Date, default: Date.now }
+    savedAt: { type: Date, default: Date.now },
+    color: { type: String, default: '#6366f1' },
+    order: { type: Number, default: 0 }
 });
 
 // Index to quickly find saved boards for a user

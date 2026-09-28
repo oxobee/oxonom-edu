@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { FaArrowRight, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { BsLightningChargeFill } from 'react-icons/bs';
 import TeacherCharacter from '../components/TeacherCharacter';
+import LanguageToggle from '../components/LanguageToggle';
 
 const ResetPassword = () => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({ newPassword: '', confirmPassword: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -76,13 +79,16 @@ const ResetPassword = () => {
                             </div>
                             <span className="font-bold text-xl sm:text-2xl text-white tracking-tight">EduBoard</span>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <LanguageToggle />
+                        </div>
                     </motion.div>
 
                     <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 tracking-tight leading-tight">
-                        Set New Password
+                        {t('auth.setNewPassword', 'Yeni Şifre Belirleyin')}
                     </h2>
                     <p className="text-slate-400 text-sm sm:text-base mb-6 sm:mb-8">
-                        Enter your new password below to regain access to your account.
+                        {t('auth.setNewPasswordDesc', 'Hesabınıza yeniden erişmek için yeni şifrenizi girin.')}
                     </p>
                 </div>
 
@@ -101,7 +107,7 @@ const ResetPassword = () => {
                     {/* New Password */}
                     <div className="group">
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">
-                            New Password
+                            {t('auth.newPassword', 'Yeni Şifre')}
                         </label>
                         <div className="relative">
                             <FaLock className="absolute top-4 left-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
@@ -128,7 +134,7 @@ const ResetPassword = () => {
                     {/* Confirm Password */}
                     <div className="group">
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 ml-1">
-                            Confirm Password
+                            {t('auth.confirmPassword', 'Şifreyi Onayla')}
                         </label>
                         <div className="relative">
                             <FaLock className="absolute top-4 left-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
@@ -159,7 +165,7 @@ const ResetPassword = () => {
                         disabled={isLoading}
                         className={`w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group transition-all mt-4 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        {isLoading ? 'Resetting...' : 'Reset Password'}
+                        {isLoading ? t('common.loading', 'Sıfırlanıyor...') : t('auth.resetPasswordBtn', 'Şifreyi Sıfırla')}
                         {!isLoading && <FaArrowRight className="group-hover:translate-x-1 transition-transform" />}
                     </motion.button>
                 </form>

@@ -160,4 +160,61 @@ router.delete('/user/:userId', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/admin/demo-settings
+ * Retrieve demo mode status, auto-reset state, and timing info
+ */
+router.get('/demo-settings', async (req, res) => {
+    try {
+        const { getDemoStatus } = require('../services/demoService');
+        const status = await getDemoStatus();
+        res.json(status);
+    } catch (err) {
+        console.error('Error getting demo settings:', err);
+        res.status(500).json({ message: 'Failed to get demo settings', error: err.message });
+    }
+});
+
+/**
+ * POST /api/admin/demo-settings
+ * Toggle demo mode auto-reset on/off
+ * When enabled, automatically runs seedDemoData with latest modules and restarts 30-min timer
+ */
+router.post('/demo-settings', async (req, res) => {
+    try {
+        const { autoResetEnabled } = req.body;
+        const { setAutoResetEnabled } = require('../services/demoService');
+        const status = await setAutoResetEnabled(autoResetEnabled);
+        res.json({
+            message: autoResetEnabled 
+                ? 'Demo otomatik sıfırlama açıldı ve tüm sistem en güncel modüllerle sıfırlandı.' 
+                : 'Demo otomatik sıfırlama durduruldu. Yaptığınız tüm düzenlemeler korunacak.',
+            ...status
+        });
+    } catch (err) {
+        console.error('Error updating demo settings:', err);
+        res.status(500).json({ message: 'Failed to update demo settings', error: err.message });
+    }
+});
+
+/**
+ * POST /api/admin/demo-reset-now
+ * Manually trigger demo environment reset to latest state immediately
+ */
+router.post('/demo-reset-now', async (req, res) => {
+    try {
+        const { seedDemoData, getDemoStatus } = require('../services/demoService');
+        const result = await seedDemoData();
+        const status = await getDemoStatus();
+        res.json({
+            message: 'Demo ortamı en güncel modüller ve ayarlar ile başarıyla sıfırlandı.',
+            ...result,
+            ...status
+        });
+    } catch (err) {
+        console.error('Error manually resetting demo:', err);
+        res.status(500).json({ message: 'Demo sıfırlama başarısız oldu', error: err.message });
+    }
+});
+
 module.exports = router;

@@ -499,6 +499,14 @@ const sendRegistrationVerificationEmail = async (userEmail, userName, otp) => {
             console.log('✅ Verification email sent via Gmail to:', userEmail);
             return { success: true, messageId: info.messageId };
         } else {
+            // If Resend is not configured, support local development OTP log
+            if (!resend) {
+                console.log(`\n========================================`);
+                console.log(`[DEV EMAIL MOCK] Verification OTP for ${userEmail}: ${otp}`);
+                console.log(`========================================\n`);
+                return { success: true, messageId: 'dev-mock-otp-' + Date.now() };
+            }
+
             // Send via Resend
             const { data, error } = await resend.emails.send({
                 from: 'EduBoard <onboarding@resend.dev>',

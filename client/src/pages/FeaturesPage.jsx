@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import Footer from '../components/Footer';
 import { UserLock, Zap, Infinity, Brush, NotebookPen, Radio, Users, GlobeCheck, RefreshCcw, SquareAsterisk, Building2, Box, ALargeSmall, SlidersHorizontal } from 'lucide-react';
 
 const FeaturesPage = () => {
+    const { t } = useTranslation();
     const { theme } = useTheme();
     const [stats, setStats] = useState({ users: 0, boards: 0, drawings: 0 });
 
@@ -142,11 +144,11 @@ const FeaturesPage = () => {
                         className="text-6xl md:text-7xl font-extrabold mb-6"
                     >
                         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                            Powerful Features
+                            {t('featuresPage.badge', 'Üstün Yetenekler')}
                         </span>
                         <br />
                         <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                            Built for Education
+                            {t('featuresPage.title', 'Modern Eğitim İçin Tasarlanmış Araçlar')}
                         </span>
                     </motion.h1>
                     <motion.p
@@ -155,7 +157,7 @@ const FeaturesPage = () => {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className={`text-xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}
                     >
-                        Everything you need for interactive, collaborative learning in one powerful platform
+                        {t('featuresPage.subtitle', 'EduBoard, etkileşimli öğrenmeyi kolaylaştıran gelişmiş çizim, paylaşım ve yönetim araçları sunar.')}
                     </motion.p>
 
                     {/* Animated Stats */}
@@ -166,9 +168,9 @@ const FeaturesPage = () => {
                         className="grid grid-cols-3 gap-8 max-w-3xl mx-auto mt-16"
                     >
                         {[
-                            { label: "Active Users", value: stats.users.toLocaleString() + "+" },
-                            { label: "Boards Created", value: stats.boards.toLocaleString() + "+" },
-                            { label: "Drawings Made", value: stats.drawings.toLocaleString() + "+" },
+                            { label: t('landing.stats.activeUsers', 'Aktif Kullanıcı'), value: stats.users.toLocaleString() + "+" },
+                            { label: t('dashboard.stats.totalBoards', 'Oluşturulan Tahta'), value: stats.boards.toLocaleString() + "+" },
+                            { label: t('dashboard.stats.totalDrawings', 'Yapılan Çizim'), value: stats.drawings.toLocaleString() + "+" },
                         ].map((stat, i) => (
                             <div key={i} className={`p-6 rounded-2xl ${theme === 'dark' ? 'bg-gray-900/50 border border-gray-800' : 'bg-gray-50 border border-gray-200'
                                 }`}>
@@ -277,16 +279,16 @@ const FeaturesPage = () => {
                             }`}
                     >
                         <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                            Ready to Transform Your Classroom?
+                            {t('landing.ctaHeading', 'Sınıfınızı Dönüştürmeye Hazır mısınız?')}
                         </h2>
                         <p className={`text-xl mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                            Join thousands of educators using EduBoard
+                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için EduBoard kullanan binlerce eğitimci ve öğrenciye katılın.')}
                         </p>
                         <Link
                             to="/signup"
                             className="inline-block px-10 py-5 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-2xl shadow-indigo-500/50 hover:shadow-indigo-500/70 hover:scale-105"
                         >
-                            Get Started Free
+                            {t('landing.ctaButton', 'Hemen Başlayın')}
                         </Link>
                     </motion.div>
                 </div>

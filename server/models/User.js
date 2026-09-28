@@ -11,7 +11,8 @@ const UserSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
+        index: true,
+        trim: true,
         match: [/.+\@.+\..+/, 'Please fill a valid email address']
     },
     password: {
@@ -24,11 +25,44 @@ const UserSchema = new mongoose.Schema({
         enum: ['teacher', 'student', 'admin'],
         default: 'student'
     },
+    firstName: {
+        type: String,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        trim: true
+    },
+    phone: {
+        type: String,
+        trim: true
+    },
+    nationalId: {
+        type: String,
+        trim: true
+    },
+    birthDate: {
+        type: String,
+        trim: true
+    },
+    startDate: {
+        type: String,
+        trim: true
+    },
+    address: {
+        type: String,
+        trim: true
+    },
     isVerified: {
         type: Boolean,
         default: function () {
             return this.role === 'student'; // Students are auto-verified
         }
+    },
+    isDemo: {
+        type: Boolean,
+        default: false,
+        index: true
     },
     verificationStatus: {
         type: String,

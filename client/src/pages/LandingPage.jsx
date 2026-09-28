@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Palette, Zap, Infinity } from 'lucide-react';
 
 const LandingPage = () => {
+    const { t } = useTranslation();
     const heroRef = useRef(null)
 
     useEffect(() => {
@@ -346,7 +348,7 @@ const LandingPage = () => {
                         transition={{ duration: 0.6 }}
                         className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent leading-tight"
                     >
-                        Collaborate. Create. Learn.
+                        {t('landing.heroTitle', 'Modern Sınıflar İçin Gerçek Zamanlı Beyaz Tahta')}
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
@@ -354,10 +356,7 @@ const LandingPage = () => {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto"
                     >
-                        EduBoard is the ultimate collaborative whiteboard
-                        platform for modern education. Bring your classroom to
-                        life with real-time interaction and infinite
-                        possibilities.
+                        {t('landing.heroSubtitle', 'EduBoard is the ultimate collaborative whiteboard platform for modern education.')}
                     </motion.p>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -369,13 +368,13 @@ const LandingPage = () => {
                             to="/signup"
                             className="px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-2xl shadow-indigo-500/50 hover:shadow-indigo-500/70 hover:scale-105"
                         >
-                            Get Started Free
+                            {t('landing.startFree', 'Ücretsiz Başla')}
                         </Link>
                         <Link
                             to="/features"
                             className="px-8 py-4 text-lg font-semibold text-white bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all border border-white/20"
                         >
-                            Explore Features
+                            {t('nav.features', 'Özellikler')}
                         </Link>
                     </motion.div>
 
@@ -390,7 +389,7 @@ const LandingPage = () => {
                                 <Infinity className="w-10 h-10" />
                             </div>
                             <div className="text-sm text-slate-400 mt-2">
-                                Infinite Canvas
+                                {t('featuresPage.canvasTitle', 'Sınırsız Tuval')}
                             </div>
                         </motion.div>
                         <motion.div
@@ -402,7 +401,7 @@ const LandingPage = () => {
                                 <Zap className="w-10 h-10" />
                             </div>
                             <div className="text-sm text-slate-400 mt-2">
-                                Real-time Sync
+                                {t('featuresPage.collabTitle', 'Gerçek Zamanlı Senkronizasyon')}
                             </div>
                         </motion.div>
                         <motion.div
@@ -414,7 +413,7 @@ const LandingPage = () => {
                                 <Palette className="w-10 h-10" />
                             </div>
                             <div className="text-sm text-slate-400 mt-2">
-                                Creative Tools
+                                {t('featuresPage.toolsTitle', 'Yaratıcı Çizim Araçları')}
                             </div>
                         </motion.div>
                     </div>
@@ -431,10 +430,10 @@ const LandingPage = () => {
                         className="text-center mb-16"
                     >
                         <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                            Powerful Features
+                            {t('landing.featuresHeading', 'Güçlü Özellikler')}
                         </h2>
                         <p className="text-xl text-slate-400">
-                            Everything you need for collaborative learning
+                            {t('landing.featuresSubheading', 'İşbirlikçi öğrenme için ihtiyacınız olan her şey')}
                         </p>
                     </motion.div>
 
@@ -474,10 +473,10 @@ const LandingPage = () => {
                         className="text-center mb-16"
                     >
                         <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                            How It Works
+                            {t('landing.howItWorksHeading', 'Nasıl Çalışır?')}
                         </h2>
                         <p className="text-xl text-slate-400">
-                            Get started in three simple steps
+                            {t('landing.howItWorksSubheading', 'Üç basit adımda başlayın')}
                         </p>
                     </motion.div>
 
@@ -526,10 +525,10 @@ const LandingPage = () => {
                         className="text-center mb-16"
                     >
                         <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                            Built for Everyone
+                            {t('landing.builtForEveryone', 'Herkes İçin Tasarlandı')}
                         </h2>
                         <p className="text-xl text-slate-400">
-                            Tailored experiences for teachers and students
+                            {t('landing.builtForEveryoneSub', 'Öğretmenler ve öğrenciler için özel deneyimler')}
                         </p>
                     </motion.div>
 
@@ -549,7 +548,7 @@ const LandingPage = () => {
                                 <div
                                     className={`inline-block px-6 py-2 bg-gradient-to-r ${useCase.gradient} rounded-full text-white font-semibold mb-6`}
                                 >
-                                    {useCase.role}
+                                    {useCase.role === 'For Teachers' ? t('landing.forTeachers', 'Öğretmenler İçin') : t('landing.forStudents', 'Öğrenciler İçin')}
                                 </div>
                                 <ul className="space-y-4">
                                     {useCase.benefits.map((benefit, i) => (
@@ -587,17 +586,16 @@ const LandingPage = () => {
                 <div className="max-w-4xl mx-auto text-center scroll-animate opacity-0">
                     <div className="surface-card p-12 rounded-3xl">
                         <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                            Ready to Transform Your Classroom?
+                            {t('landing.ctaHeading', 'Sınıfınızı Dönüştürmeye Hazır mısınız?')}
                         </h2>
                         <p className="text-xl text-slate-300 mb-8">
-                            Join thousands of educators and students already
-                            using EduBoard for collaborative learning.
+                            {t('landing.ctaSubheading', 'İşbirlikçi öğrenme için EduBoard kullanan binlerce eğitimci ve öğrenciye katılın.')}
                         </p>
                         <Link
                             to="/signup"
                             className="inline-block px-10 py-5 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-2xl shadow-indigo-500/50 hover:shadow-indigo-500/70 hover:scale-105"
                         >
-                            Start Free Today
+                            {t('landing.ctaButton', 'Hemen Başlayın')}
                         </Link>
                     </div>
                 </div>

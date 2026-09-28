@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom"; // FIX: internal links ke liye Link import
 import { FiSearch } from "react-icons/fi"; // FIX 3 & 4: react-icons se search icon
+import { useTranslation } from "react-i18next";
 
 export default function FAQPage() {
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -279,12 +281,11 @@ export default function FAQPage() {
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950/0 to-transparent pointer-events-none"></div>
 
         <h1 className="font-bold text-[clamp(2.5rem,5vw,4rem)] bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent leading-[1.15] tracking-tight mb-6 relative z-10">
-          Frequently Asked Questions
+          {t('faqPage.title', 'Sıkça Sorulan Sorular')}
         </h1>
 
         <p className="text-slate-400 text-lg max-w-[620px] mx-auto mb-10 leading-relaxed relative z-10">
-          Everything you need to know about Eduboard. Can't find an answer?
-          Reach out to our support team.
+          {t('faqPage.subtitle', 'EduBoard hakkında aklınıza takılabilecek tüm soruların yanıtları burada.')}
         </p>
 
         {/* SEARCH BAR — FIX 3: FiSearch icon added */}
@@ -293,7 +294,7 @@ export default function FAQPage() {
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none" />
             <input
               type="text"
-              placeholder="Search questions..."
+              placeholder={t('common.search', 'Ara...')}
               value={searchQuery}
               onChange={handleSearchChange}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-12 pr-6 py-4 text-white outline-none transition-all duration-300 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 placeholder:text-slate-500 shadow-xl shadow-black/20"

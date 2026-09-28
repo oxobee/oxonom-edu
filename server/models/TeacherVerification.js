@@ -10,8 +10,19 @@ const TeacherVerificationSchema = new mongoose.Schema({
     documents: [{
         type: {
             type: String,
-            enum: ['id_proof', 'teaching_certificate', 'degree'],
-            required: true
+            default: 'degree'
+        },
+        title: {
+            type: String
+        },
+        fileName: {
+            type: String
+        },
+        fileSize: {
+            type: Number
+        },
+        fileType: {
+            type: String
         },
         url: {
             type: String,
@@ -19,7 +30,7 @@ const TeacherVerificationSchema = new mongoose.Schema({
         },
         publicId: {
             type: String,
-            required: true
+            default: ''
         },
         uploadedAt: {
             type: Date,

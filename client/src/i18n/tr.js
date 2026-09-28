@@ -28,7 +28,7 @@ const tr = {
     logout: 'Çıkış Yap'
   },
   footer: {
-    tagline: 'Modern sınıflar için gerçek zamanlı işbirlikçi beyaz tahta platformu.',
+    tagline: 'Modern sınıflar için gerçek zamanlı işbirlikçi akıllı tahta platformu.',
     product: 'Ürün',
     company: 'Şirket',
     resources: 'Kaynaklar',
@@ -45,7 +45,7 @@ const tr = {
   },
   landing: {
     badge: 'Geleceğin Eğitim Teknolojisi',
-    heroTitle: 'Modern Sınıflar İçin Gerçek Zamanlı Beyaz Tahta',
+    heroTitle: 'Modern Sınıflar İçin Gerçek Zamanlı Akıllı Tahta',
     heroSubtitle: 'Öğretmenler canlı ders oturumları başlatır, öğrenciler tek bir oda koduyla anında katılır. Çizim, not alma ve işbirliğini sınır tanımayan dijital tahtada deneyimleyin.',
     startFree: 'Ücretsiz Başla',
     joinSession: 'Oturuma Katıl',
@@ -199,7 +199,7 @@ const tr = {
     clearSearch: 'Aramayı Temizle'
   },
   createBoardModal: {
-    title: 'Yeni Beyaz Tahta Oluştur',
+    title: 'Yeni Akıllı Tahta Oluştur',
     boardNameLabel: 'Tahta / Ders Adı',
     boardNamePlaceholder: 'örn: Matematik - Geometri 101',
     allowStudentEditLabel: 'Öğrencilerin Çizim Yapmasına İzin Ver',

@@ -108,7 +108,7 @@ const CreateBoardModal = ({ isOpen, onClose, onCreateBoard, initialClassId = nul
                             {/* Header */}
                             <div className="border-b border-border/60 pb-3.5 pr-8">
                                 <h2 className="text-xl font-semibold text-foreground tracking-tight flex items-center gap-2">
-                                    <Presentation className="text-primary w-5 h-5" /> Yeni Beyaz Tahta Oluştur
+                                    <Presentation className="text-primary w-5 h-5" /> Yeni Akıllı Tahta Oluştur
                                 </h2>
                                 <p className="text-muted-foreground text-xs mt-1">
                                     Sınıfınız için etkileşimli yeni bir ders tahtası başlatın.

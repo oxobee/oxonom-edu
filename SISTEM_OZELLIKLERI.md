@@ -1,6 +1,6 @@
 # 🌟 Oxonom Edu - Kapsamlı Sistem & Özellikler Rehberi
 
-**Oxonom Edu**, modern okullar, öğretmenler ve öğrenciler için geliştirilmiş; **Akıllı İnteraktif Beyaz Tahta**, **Modül Ekosistemi (Eklentiler)** ve **Bütünleşik Okul Yönetim Sistemini (Sınıf, Yoklama, Ödev, Sınav, Veli İletişimi)** tek bir çatıda birleştiren yeni nesil bir eğitim teknolojileri (EdTech) platformudur.
+**Oxonom Edu**, modern okullar, öğretmenler ve öğrenciler için geliştirilmiş; **Akıllı İnteraktif Tahta**, **Modül Ekosistemi (Eklentiler)** ve **Bütünleşik Okul Yönetim Sistemini (Sınıf, Yoklama, Ödev, Sınav, Veli İletişimi)** tek bir çatıda birleştiren yeni nesil bir eğitim teknolojileri (EdTech) platformudur.
 
 ---
 
@@ -27,7 +27,7 @@ Oxonom Edu; akıllı tahta yazılımları, okul yönetim bilgi sistemleri ve sı
 
 ## 2. 🎨 Akıllı İnteraktif Tahta (Smart Whiteboard)
 
-Oxonom Edu'nun kalbini oluşturan akıllı tahta motoru, geleneksel beyaz tahtaların ötesinde öğretmen ve öğrencilere zengin bir çalışma ortamı sunar:
+Oxonom Edu'nun kalbini oluşturan akıllı tahta motoru, geleneksel tahtaların ötesinde öğretmen ve öğrencilere zengin bir çalışma ortamı sunar:
 
 ### A. Çizim ve Tasarım Araçları
 - **Kalem & Fırça (Brush & Pencil):** 

@@ -180,7 +180,7 @@ const TeacherSignup = () => {
                         Öğretmen Hesabı Oluştur
                     </h2>
                     <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-                        Sınıflarınızı oluşturup öğrencilerinize eşleşme kodu vermek ve interaktif beyaz tahtaları yönetmek için 4 adımda kaydolun.
+                        Sınıflarınızı oluşturup öğrencilerinize eşleşme kodu vermek ve interaktif akıllı tahtaları yönetmek için 4 adımda kaydolun.
                     </p>
                 </div>
 

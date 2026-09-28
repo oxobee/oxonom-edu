@@ -1,7 +1,7 @@
 {
   "name": "Oxonom Edu",
   "short_name": "OxonomEdu",
-  "description": "Oxonom Edu - Akıllı Beyaz Tahta ve Eğitim Platformu",
+  "description": "Oxonom Edu - Akıllı Tahta ve Eğitim Platformu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

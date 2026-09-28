@@ -267,7 +267,7 @@ const BoardsManager = ({
     const handleDeleteBoard = async (roomId, boardTitle, mongoId, e) => {
         if (e) e.stopPropagation();
         const confirmed = window.confirm(
-            `"${boardTitle}" adlı beyaz tahtayı silmek istediğinizden emin misiniz?`
+            `"${boardTitle}" adlı akıllı tahtayı silmek istediğinizden emin misiniz?`
         );
         if (!confirmed) return;
 
@@ -350,7 +350,7 @@ const BoardsManager = ({
                         className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
                     >
                         <FaPlus className="text-xs" />
-                        <span>Yeni Beyaz Tahta Oluştur</span>
+                        <span>Yeni Akıllı Tahta Oluştur</span>
                     </button>
                 )}
             </div>

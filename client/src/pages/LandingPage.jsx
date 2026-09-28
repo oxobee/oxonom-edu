@@ -348,7 +348,7 @@ const LandingPage = () => {
                         transition={{ duration: 0.6 }}
                         className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent leading-tight"
                     >
-                        {t('landing.heroTitle', 'Modern Sınıflar İçin Gerçek Zamanlı Beyaz Tahta')}
+                        {t('landing.heroTitle', 'Modern Sınıflar İçin Gerçek Zamanlı Akıllı Tahta')}
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}

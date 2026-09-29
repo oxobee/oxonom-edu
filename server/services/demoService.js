@@ -983,8 +983,16 @@ async function seedDemoData() {
     // Remove guardians
     await Guardian.deleteMany({ studentId: { $in: existingStudentIds } });
 
-    // Remove student auth users
-    await User.deleteMany({ isDemo: true, role: 'student' });
+    // Remove student auth users cleanly (prevents username/email duplicate key conflicts)
+    await User.deleteMany({
+      $or: [
+        { isDemo: true, role: 'student' },
+        { username: { $regex: /^ogrenci_/i } },
+        { username: DEMO_STUDENT_USERNAME },
+        { email: DEMO_STUDENT_EMAIL },
+        { email: { $regex: /@oxonom\.com$/i }, role: 'student' }
+      ]
+    });
 
     // Remove whiteboards for this teacher
     await Board.deleteMany({ createdBy: teacherId });

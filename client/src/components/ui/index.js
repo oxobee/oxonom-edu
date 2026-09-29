@@ -23,3 +23,4 @@ export {
 export { AnimatedItem } from '../animated/AnimatedItem';
 export { AnimatedTableWrapper, AnimatedTableBody, AnimatedTableRow } from '../animated/AnimatedTable';
 export { AnimatedProgress } from '../animated/AnimatedProgress';
+export { default as AutoScrollText } from './AutoScrollText';

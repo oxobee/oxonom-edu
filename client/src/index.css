@@ -339,3 +339,20 @@ html[data-card-shadow="true"] [data-slot="card"] {
   background-size: 200% auto;
   animation: text-gradient-flow 4.5s ease-in-out infinite;
 }
+
+/* Kayar Yazı (Marquee Loop) Animasyonu */
+@keyframes marquee-loop {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-loop {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee-loop 12s linear infinite;
+  will-change: transform;
+}

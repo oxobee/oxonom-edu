@@ -7,6 +7,7 @@ import {
     Type, PenTool, Check, Trophy, Star, Zap, Target,
     Flag, RefreshCw, Eye, Flame, AlertCircle
 } from 'lucide-react';
+import AutoScrollText from './ui/AutoScrollText';
 
 // İlkokul 1-4. sınıf seviyesine uygun zengin pedagojik okuma metinleri
 const SAMPLE_TEXTS = [
@@ -284,12 +285,11 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
     const badge = getReadingBadge(wpm);
     const pedagogicalTip = getPedagogicalTip(wpm, completionPct);
 
-    // SVG Dairesel Sayaç Hesaplaması
-    const radius = 26;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = durationSeconds > 0 
-        ? circumference * (1 - timeLeft / durationSeconds) 
-        : 0;
+    // SVG Dairesel Sayaç Hesaplaması (viewBox 0 0 80 80, merkez 40 40)
+    const radius = 33;
+    const circumference = 2 * Math.PI * radius; // 207.345
+    const progress = durationSeconds > 0 ? Math.max(0, Math.min(1, timeLeft / durationSeconds)) : 1;
+    const strokeDashoffset = circumference * (1 - progress);
 
     const isUrgent = isRunning && timeLeft <= 10 && timeLeft > 0;
 
@@ -434,33 +434,36 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                                 
                                 {/* Sol & Orta: Animasyonlu Sayaç Göstergesi + Durum Mesajı */}
                                 <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
-                                    {/* Dairesel SVG Sayaç */}
-                                    <div className="relative flex items-center justify-center shrink-0">
-                                        <svg className="w-16 h-16 sm:w-18 sm:h-18 -rotate-90">
-                                            {/* Arka plan halkası */}
+                                    {/* Dairesel Hassas SVG Sayaç */}
+                                    <div className="relative flex items-center justify-center shrink-0 w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-slate-950 border-2 border-slate-800 shadow-xl shadow-black/50">
+                                        <svg 
+                                            className="w-full h-full -rotate-90 origin-center p-1" 
+                                            viewBox="0 0 80 80"
+                                        >
+                                            {/* Arka plan ray halkası */}
                                             <circle
-                                                cx="32"
-                                                cy="32"
+                                                cx="40"
+                                                cy="40"
                                                 r={radius}
-                                                className="stroke-slate-800"
-                                                strokeWidth="5"
+                                                className="stroke-slate-800/90"
+                                                strokeWidth="6"
                                                 fill="transparent"
                                             />
                                             {/* Animasyonlu ilerleme halkası */}
                                             <motion.circle
-                                                cx="32"
-                                                cy="32"
+                                                cx="40"
+                                                cy="40"
                                                 r={radius}
                                                 className={`transition-all duration-300 ${
                                                     isUrgent 
-                                                        ? 'stroke-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]' 
+                                                        ? 'stroke-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.9)]' 
                                                         : isRunning 
-                                                            ? 'stroke-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                                                            ? 'stroke-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]'
                                                             : timeLeft === 0
-                                                                ? 'stroke-emerald-400'
-                                                                : 'stroke-amber-500/70'
+                                                                ? 'stroke-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]'
+                                                                : 'stroke-amber-500/80'
                                                 }`}
-                                                strokeWidth="5.5"
+                                                strokeWidth="6.5"
                                                 strokeDasharray={circumference}
                                                 strokeDashoffset={strokeDashoffset}
                                                 strokeLinecap="round"
@@ -468,13 +471,13 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                                             />
                                         </svg>
 
-                                        {/* Sayaç İçi Sayı & İkon */}
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        {/* Sayaç İçi Rakam ve Birim: Kusursuz Merkezlenmiş */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none text-center">
                                             <motion.span 
                                                 key={timeLeft}
-                                                initial={isUrgent ? { scale: 1.25 } : { scale: 1 }}
+                                                initial={isUrgent ? { scale: 1.15 } : { scale: 1 }}
                                                 animate={{ scale: 1 }}
-                                                className={`font-mono text-base sm:text-lg font-black tracking-tight leading-none ${
+                                                className={`font-mono text-2xl sm:text-3xl font-black tracking-tight leading-none ${
                                                     isUrgent 
                                                         ? 'text-rose-400 animate-pulse' 
                                                         : isRunning 
@@ -484,8 +487,8 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                                             >
                                                 {String(timeLeft).padStart(2, '0')}
                                             </motion.span>
-                                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">
-                                                sn
+                                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
+                                                SN
                                             </span>
                                         </div>
                                     </div>
@@ -681,21 +684,39 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                             </div>
                         </div>
 
-                        {/* --- İŞARETLEME ÇAĞRISI BANNERI (SÜRE BİTİNCE VEYA BİTİRDİM DEYİNCE ÇIKAR) --- */}
+                        {/* --- İŞARETLEME ÇAĞRISI BANNERI (YÜKSEK KONTRASTLI, NET VE OKUNAKLI) --- */}
                         <AnimatePresence>
                             {isWaitingForMarking && (
                                 <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-4 py-2 text-white shadow-lg shrink-0 flex items-center justify-between gap-2 overflow-hidden"
+                                    initial={{ height: 0, opacity: 0, y: -8 }}
+                                    animate={{ height: 'auto', opacity: 1, y: 0 }}
+                                    exit={{ height: 0, opacity: 0, y: -8 }}
+                                    className="bg-slate-950 border-y-2 border-amber-400 px-4 py-3 text-white shadow-2xl shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-hidden"
                                 >
-                                    <div className="flex items-center gap-2 text-xs sm:text-sm font-black animate-pulse">
-                                        <span className="text-xl">👇</span>
-                                        <span>HARİKA OKUDUN! Şimdi aşağıdaki metinde en son okuduğun kelimeye parmağınla dokun!</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-11 h-11 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-2xl shrink-0 shadow-lg shadow-amber-400/30 animate-bounce">
+                                            👇
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-amber-400 font-black text-sm sm:text-base tracking-wide uppercase">
+                                                    🎉 HARİKA OKUDUN, TEBRİKLER! 👏
+                                                </span>
+                                                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                    Sıra Sende
+                                                </span>
+                                            </div>
+                                            <p className="text-xs sm:text-sm text-slate-100 font-bold mt-0.5 leading-snug">
+                                                Aşağıdaki metinde <span className="text-amber-300 underline underline-offset-4 decoration-amber-400 decoration-2 font-black">en son okuduğun kelimeye parmağınla dokun</span>; okuma hızın ve başarı karnen anında hazırlansın!
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="hidden sm:flex items-center gap-1 text-[11px] bg-black/20 px-2.5 py-0.5 rounded-full font-semibold">
-                                        <span>Hedef Kelimene Tıkla</span>
+
+                                    <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                                        <span className="inline-flex items-center gap-1.5 bg-amber-400 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl shadow-md uppercase tracking-wider animate-pulse">
+                                            <span>📍</span>
+                                            <span>Kaldığın Kelimeye Dokun</span>
+                                        </span>
                                     </div>
                                 </motion.div>
                             )}
@@ -717,11 +738,22 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                                 />
                             )}
 
-                            {/* Hikaye Başlığı */}
-                            <div className="text-center mb-6 sm:mb-8">
-                                <h3 className="font-diktemel text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide text-amber-300">
+                            {/* Kelime İşaretleme Yüzen Rehberi */}
+                            {isWaitingForMarking && (
+                                <div className="flex justify-center mb-4">
+                                    <span className="inline-flex items-center gap-2 bg-amber-400 text-slate-950 text-xs sm:text-sm font-black px-4 py-2 rounded-full shadow-xl animate-bounce border-2 border-slate-950">
+                                        <span>👉</span>
+                                        <span>Kaldığın son kelimeye dokun</span>
+                                        <span>👇</span>
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Hikaye Başlığı (Sığmayan Başlıklar Kayar Yazı Olur) */}
+                            <div className="text-center mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
+                                <AutoScrollText className="font-diktemel text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide text-amber-300 text-center">
                                     {activeText.title}
-                                </h3>
+                                </AutoScrollText>
                                 <div className="w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-2 rounded-full" />
                             </div>
 

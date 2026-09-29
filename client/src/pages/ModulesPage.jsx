@@ -36,7 +36,8 @@ import {
   CardContent,
   Badge,
   Button,
-  EmptyState
+  EmptyState,
+  AutoScrollText
 } from '../components/ui';
 
 // MEB Müfredatına Uygun Ders / Alan Tanımları
@@ -303,10 +304,12 @@ const ModulesPage = () => {
           {/* Kart İçeriği */}
           <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                  {mod.title}
-                </h3>
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <AutoScrollText className="font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
+                    {mod.title}
+                  </AutoScrollText>
+                </div>
                 <div className="w-7 h-7 rounded-lg bg-muted/60 group-hover:bg-primary/10 border border-border/60 group-hover:border-primary/20 flex items-center justify-center shrink-0 transition-all">
                   <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </div>
@@ -338,15 +341,17 @@ const ModulesPage = () => {
 
             {/* Kart Altı: Sınıf Durumu & Aksiyon Butonları */}
             <div className="pt-3 border-t border-border/60 space-y-3">
-              {/* Sınıf Durumu (Öğretmenler için) */}
+              {/* Sınıf Durumu (Öğretmenler için: sığmayan sınıflar kayar yazı ile akar) */}
               {userRole !== 'student' && (
-                <div className="flex items-center justify-between gap-2 text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/60">
+                <div className="flex items-center justify-between gap-2 text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/60 min-w-0">
                   <span className="text-muted-foreground font-medium text-[11px] shrink-0">Sınıf Durumu:</span>
                   {isAssignedToAny ? (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 truncate text-right">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{mod.assignedCount} Sınıfta Etkin ({assignedNames})</span>
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end overflow-hidden">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                      <AutoScrollText className="text-[11px] font-semibold text-emerald-400 text-right">
+                        {mod.assignedCount} Sınıfta Etkin ({assignedNames})
+                      </AutoScrollText>
+                    </div>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />

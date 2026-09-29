@@ -6,6 +6,7 @@ import {
     Type, PenTool, Check, Palette, Eraser, Trash2, ArrowRight,
     HelpCircle, Eye, EyeOff, Layers, Download
 } from 'lucide-react';
+import { getStrokesForChar, transformStrokePoint } from '../utils/letterStrokes';
 
 // MEB 1. Sınıf Ses Grupları ve Görsel Kartları
 const MEB_LETTER_GROUPS = [
@@ -135,7 +136,34 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
     const lastPointRef = useRef(null);
     const containerRef = useRef(null);
 
-    // Mevcut aktif karakteri belirle
+    // Kılavuz Çizgi ve Harf Geometrik Ölçüleri
+    const [metrics, setMetrics] = useState({
+        xLeft: 120,
+        letterWidth: 160,
+        yTepe: 70,
+        yGovde: 140,
+        yTaban: 210,
+        yKuyruk: 280,
+        spacing: 70,
+        width: 600,
+        height: 400
+    });
+
+    // Dinamik Yuvarlak İmleç Pozisyonu (Kalem boyutuna göre büyür/küçülür)
+    const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, visible: false });
+
+    // Animasyon Gösterim Referansları & State'leri
+    const [demoPencil, setDemoPencil] = useState(null); // { x, y, strokeNum }
+    const animRef = useRef(null);
+    const pauseTimerRef = useRef(null);
+
+    // Mevcut aktif karakter anahtarını belirle
+    const currentCharKey = category === 'letters'
+        ? (isUpperCase ? selectedLetter.char : selectedLetter.lower)
+        : category === 'numbers'
+            ? selectedNumber.char
+            : selectedLine.id;
+
     const currentChar = category === 'letters'
         ? (isUpperCase ? selectedLetter.char : selectedLetter.lower)
         : category === 'numbers'
@@ -144,14 +172,43 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
 
     const currentCard = category === 'letters' ? selectedLetter : category === 'numbers' ? selectedNumber : null;
 
-    // Canvas Boyutlandırma ve Temizleme
+    // Ölçüleri güncelleme
+    const updateMetrics = () => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const W = rect.width;
+        const H = rect.height;
+        if (W === 0 || H === 0) return;
+
+        const spacing = Math.max(36, Math.min(Math.floor(H * 0.20), 105));
+        const centerY = H * 0.46;
+        const yTepe = centerY - 1.5 * spacing;
+        const yGovde = centerY - 0.5 * spacing;
+        const yTaban = centerY + 0.5 * spacing;
+        const yKuyruk = centerY + 1.5 * spacing;
+        const letterWidth = Math.min(W * 0.75, spacing * 1.6);
+        const xLeft = (W - letterWidth) / 2;
+
+        setMetrics({
+            xLeft,
+            letterWidth,
+            yTepe,
+            yGovde,
+            yTaban,
+            yKuyruk,
+            spacing,
+            width: W,
+            height: H
+        });
+    };
+
+    // Canvas Boyutlandırma
     useEffect(() => {
         if (!isOpen) return;
         const resizeCanvas = () => {
             const canvas = canvasRef.current;
             if (!canvas || !containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
-            // Retina display scale
             const dpr = window.devicePixelRatio || 1;
             canvas.width = rect.width * dpr;
             canvas.height = rect.height * dpr;
@@ -159,6 +216,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
             ctx.scale(dpr, dpr);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+            updateMetrics();
         };
 
         const timer = setTimeout(resizeCanvas, 100);
@@ -169,11 +227,30 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         };
     }, [isOpen, windowState]);
 
-    // Karakter değiştiğinde canvas'ı sıfırla
-    useEffect(() => {
-        clearCanvas();
+    const stopDemonstration = () => {
+        if (animRef.current) {
+            cancelAnimationFrame(animRef.current);
+            animRef.current = null;
+        }
+        if (pauseTimerRef.current) {
+            clearTimeout(pauseTimerRef.current);
+            pauseTimerRef.current = null;
+        }
         setIsDemonstrating(false);
+        setDemoPencil(null);
+    };
+
+    // Karakter değiştiğinde canvas'ı ve animasyonu sıfırla
+    useEffect(() => {
+        stopDemonstration();
+        clearCanvas();
     }, [selectedLetter, isUpperCase, selectedNumber, selectedLine, category]);
+
+    useEffect(() => {
+        return () => {
+            stopDemonstration();
+        };
+    }, []);
 
     const clearCanvas = () => {
         const canvas = canvasRef.current;
@@ -183,15 +260,135 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         setHasDrawn(false);
     };
 
-    // "Nasıl Yazılır?" Animasyon Gösterimi Simülasyonu (Sessiz)
+    // "Nasıl Yazılır?" Animasyon Motoru - MEB Standart Çizgilerini Birebir Takip Eder
     const startDemonstration = () => {
-        setIsDemonstrating(true);
+        stopDemonstration();
         clearCanvas();
+        setIsDemonstrating(true);
 
-        // 3.2 saniye sonra gösterimi tamamla
-        setTimeout(() => {
+        const strokes = getStrokesForChar(currentCharKey);
+        if (!strokes || strokes.length === 0) {
             setIsDemonstrating(false);
-        }, 3200);
+            return;
+        }
+
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            setIsDemonstrating(false);
+            return;
+        }
+        const ctx = canvas.getContext('2d');
+
+        // Hamleleri piksel koordinatlarına çevir
+        const pixelStrokes = strokes.map(stroke =>
+            stroke.map(pt => transformStrokePoint(pt, metrics))
+        );
+
+        let currentStrokeIndex = 0;
+        let pointIndex = 0;
+        let t = 0;
+
+        let prevPos = pixelStrokes[0][0];
+        setDemoPencil({ x: prevPos.x, y: prevPos.y, strokeNum: 1 });
+
+        const step = () => {
+            if (currentStrokeIndex >= pixelStrokes.length) {
+                setDemoPencil(null);
+                setIsDemonstrating(false);
+                return;
+            }
+
+            const stroke = pixelStrokes[currentStrokeIndex];
+
+            // Nokta hamlesi (örn: 'i', 'ü', 'ö' noktaları)
+            if (stroke.length === 1) {
+                const p = stroke[0];
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, Math.max(penSize / 2, 4), 0, Math.PI * 2);
+                ctx.fillStyle = penColor;
+                ctx.fill();
+                setDemoPencil({ x: p.x, y: p.y, strokeNum: currentStrokeIndex + 1 });
+
+                currentStrokeIndex++;
+                pointIndex = 0;
+                t = 0;
+                if (currentStrokeIndex < pixelStrokes.length) {
+                    prevPos = pixelStrokes[currentStrokeIndex][0];
+                    setDemoPencil({ x: prevPos.x, y: prevPos.y, strokeNum: currentStrokeIndex + 1 });
+                }
+                pauseTimerRef.current = setTimeout(() => {
+                    animRef.current = requestAnimationFrame(step);
+                }, 300);
+                return;
+            }
+
+            const p1 = stroke[pointIndex];
+            const p2 = stroke[pointIndex + 1];
+
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const dist = Math.hypot(dx, dy);
+
+            // Doğal el yazısı hızı
+            const stepSize = Math.max(3.5, 5);
+            const deltaT = dist > 0 ? stepSize / dist : 1;
+
+            t += deltaT;
+            if (t >= 1) {
+                t = 0;
+                ctx.beginPath();
+                ctx.moveTo(prevPos.x, prevPos.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = penSize;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                prevPos = p2;
+                setDemoPencil({ x: p2.x, y: p2.y, strokeNum: currentStrokeIndex + 1 });
+
+                pointIndex++;
+                if (pointIndex >= stroke.length - 1) {
+                    // Hamle bitti
+                    currentStrokeIndex++;
+                    pointIndex = 0;
+                    t = 0;
+                    if (currentStrokeIndex < pixelStrokes.length) {
+                        prevPos = pixelStrokes[currentStrokeIndex][0];
+                        setDemoPencil({ x: prevPos.x, y: prevPos.y, strokeNum: currentStrokeIndex + 1 });
+                        pauseTimerRef.current = setTimeout(() => {
+                            animRef.current = requestAnimationFrame(step);
+                        }, 260);
+                        return;
+                    } else {
+                        // Tüm hamleler tamamlandı
+                        setDemoPencil(null);
+                        setIsDemonstrating(false);
+                        return;
+                    }
+                }
+            } else {
+                const curX = p1.x + dx * t;
+                const curY = p1.y + dy * t;
+
+                ctx.beginPath();
+                ctx.moveTo(prevPos.x, prevPos.y);
+                ctx.lineTo(curX, curY);
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = penSize;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                prevPos = { x: curX, y: curY };
+                setDemoPencil({ x: curX, y: curY, strokeNum: currentStrokeIndex + 1 });
+            }
+
+            animRef.current = requestAnimationFrame(step);
+        };
+
+        animRef.current = requestAnimationFrame(step);
     };
 
     // Çizim Olayları (Pointer & Touch uyumlu, kaydırmayı engeller)
@@ -226,22 +423,25 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         isDrawingRef.current = true;
         lastPointRef.current = pt;
         setHasDrawn(true);
+        setCursorPos({ x: pt.x, y: pt.y, visible: true });
 
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, (isEraser ? penSize * 2 : penSize) / 2, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, (isEraser ? penSize * 3 : penSize) / 2, 0, Math.PI * 2);
         ctx.fillStyle = isEraser ? '#090d16' : penColor;
         ctx.fill();
     };
 
     const handlePointerMove = (e) => {
+        const pt = getCoordinates(e);
+        setCursorPos({ x: pt.x, y: pt.y, visible: true });
+
         if (!isDrawingRef.current || isDemonstrating) return;
         if (e.cancelable && e.type.startsWith('touch')) {
             e.preventDefault();
         }
-        const pt = getCoordinates(e);
         const last = lastPointRef.current;
         if (!last) return;
 
@@ -271,6 +471,15 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                 e.currentTarget.releasePointerCapture(e.pointerId);
             }
         } catch (_) {}
+        if (e && e.type && e.type.startsWith('touch')) {
+            setCursorPos(prev => ({ ...prev, visible: false }));
+        }
+    };
+
+    const handlePointerLeave = () => {
+        setCursorPos(prev => ({ ...prev, visible: false }));
+        isDrawingRef.current = false;
+        lastPointRef.current = null;
     };
 
     if (!isOpen) return null;
@@ -715,12 +924,20 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                             <div className="flex items-center gap-1.5 sm:gap-2">
                                 <button
                                     type="button"
-                                    onClick={startDemonstration}
-                                    disabled={isDemonstrating}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                                    onClick={isDemonstrating ? stopDemonstration : startDemonstration}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all shadow-sm cursor-pointer"
                                 >
-                                    <Play className="w-3.5 h-3.5 fill-current" />
-                                    <span>{isDemonstrating ? 'Gösteriliyor...' : 'Nasıl Yazılır?'}</span>
+                                    {isDemonstrating ? (
+                                        <>
+                                            <Pause className="w-3.5 h-3.5 fill-current text-amber-300" />
+                                            <span className="text-amber-200">Durdur</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="w-3.5 h-3.5 fill-current" />
+                                            <span>Nasıl Yazılır?</span>
+                                        </>
+                                    )}
                                 </button>
 
                                 <button
@@ -752,7 +969,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                                 </button>
                             </div>
 
-                            {/* Sağ Araçlar: Silgi, Temizle, Tebrik & Tahtaya Aktar */}
+                            {/* Sağ Araçlar: Silgi, Temizle */}
                             <div className="flex items-center gap-1.5">
                                 <button
                                     type="button"
@@ -783,106 +1000,188 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                             ref={containerRef}
                             className="flex-1 relative flex items-center justify-center overflow-hidden select-none bg-[#090d16]"
                         >
-                            {/* 1. MEB Standart Kılavuz Çizgili Satırlar (4 Çizgi, 3 Aralık) */}
+                            {/* 1. MEB Standart Kılavuz Çizgili Satırlar (4 Çizgi, 3 Eşit Aralık) */}
                             {showGuidelines && (
-                                <div className="absolute inset-0 pointer-events-none flex flex-col justify-center px-4">
-                                    <div className="w-full relative h-[60%] flex flex-col justify-between">
-                                        {/* 1. Çizgi: Üst Mavi Çizgi (Tepe Sınırı) */}
-                                        <div className="w-full h-0.5 bg-sky-400/40 relative">
-                                            <span className="absolute -top-4 left-2 text-[10px] text-sky-400/60 font-mono">
-                                                Tepe Çizgisi
-                                            </span>
-                                        </div>
-
-                                        {/* 2. Çizgi: Orta Kesikli Mavi Çizgi (Gövde Sınırı) */}
-                                        <div className="w-full border-t-2 border-dashed border-slate-500/40 relative">
-                                            <span className="absolute -top-3.5 left-2 text-[10px] text-slate-400/50 font-mono">
-                                                Gövde Çizgisi
-                                            </span>
-                                        </div>
-
-                                        {/* 3. Çizgi: Kırmızı/Pembe Taban Çizgisi (Temel Zemin) */}
-                                        <div className="w-full h-1 bg-rose-500/70 shadow-sm relative">
-                                            <span className="absolute -top-4 left-2 text-[10px] text-rose-400/80 font-bold font-mono">
-                                                Taban Çizgisi
-                                            </span>
-                                        </div>
-
-                                        {/* 4. Çizgi: Alt Mavi Çizgi (Kuyruk Sınırı) */}
-                                        <div className="w-full h-0.5 bg-sky-400/40 relative">
-                                            <span className="absolute -top-4 left-2 text-[10px] text-sky-400/60 font-mono">
-                                                Kuyruk Çizgisi
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 2. Hayalet Harf & Yön Okları Kılavuzu (Ghost Guide) */}
-                            {showGhostGuide && category !== 'lines' && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                    <div className="relative flex items-center justify-center">
-                                        {/* TTKB Kılavuzlu Font (Oklar ve Numaralar Dahil) */}
-                                        <span 
-                                            className="font-diktemel-kilavuzlu text-[170px] xs:text-[220px] sm:text-[280px] md:text-[340px] text-white/20 select-none leading-none drop-shadow-md"
-                                        >
-                                            {currentChar}
+                                <div className="absolute inset-0 pointer-events-none px-4">
+                                    {/* 1. Çizgi: Tepe Çizgisi */}
+                                    <div
+                                        className="absolute left-4 right-4 h-0.5 bg-sky-400/50 shadow-xs"
+                                        style={{ top: `${metrics.yTepe}px` }}
+                                    >
+                                        <span className="absolute -top-4 left-2 text-[10px] text-sky-400/80 font-mono font-medium">
+                                            Tepe Çizgisi
                                         </span>
+                                    </div>
 
-                                        {/* Gösterim Modunda Hareket Eden Animasyonlu Kalem İmleci */}
-                                        {isDemonstrating && (
-                                            <motion.div
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ 
-                                                    scale: [1, 1.2, 1],
-                                                    opacity: 1,
-                                                    x: [ -80, 0, 80, 0, -80 ],
-                                                    y: [ -60, -40, 40, 60, -60 ]
-                                                }}
-                                                transition={{ duration: 3, ease: 'easeInOut' }}
-                                                className="absolute pointer-events-none z-30"
-                                            >
-                                                <div className="w-7 h-7 rounded-full bg-amber-400 border-2 border-white shadow-lg flex items-center justify-center animate-ping absolute" />
-                                                <div className="w-7 h-7 rounded-full bg-amber-500 border-2 border-white shadow-lg flex items-center justify-center text-slate-950 text-xs font-bold">
-                                                    ✏️
-                                                </div>
-                                            </motion.div>
-                                        )}
+                                    {/* 2. Çizgi: Gövde Çizgisi (Kesikli) */}
+                                    <div
+                                        className="absolute left-4 right-4 border-t-2 border-dashed border-slate-500/50"
+                                        style={{ top: `${metrics.yGovde}px` }}
+                                    >
+                                        <span className="absolute -top-3.5 left-2 text-[10px] text-slate-400/70 font-mono font-medium">
+                                            Gövde Çizgisi
+                                        </span>
+                                    </div>
+
+                                    {/* 3. Çizgi: Taban Çizgisi (Kırmızı Zemin) */}
+                                    <div
+                                        className="absolute left-4 right-4 h-1 bg-rose-500/85 shadow-sm"
+                                        style={{ top: `${metrics.yTaban}px` }}
+                                    >
+                                        <span className="absolute -top-4 left-2 text-[10px] text-rose-400 font-bold font-mono">
+                                            Taban Çizgisi
+                                        </span>
+                                    </div>
+
+                                    {/* 4. Çizgi: Kuyruk Çizgisi */}
+                                    <div
+                                        className="absolute left-4 right-4 h-0.5 bg-sky-400/50 shadow-xs"
+                                        style={{ top: `${metrics.yKuyruk}px` }}
+                                    >
+                                        <span className="absolute -top-4 left-2 text-[10px] text-sky-400/80 font-mono font-medium">
+                                            Kuyruk Çizgisi
+                                        </span>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Çizgi Çalışmaları İçin Şablon */}
-                            {showGhostGuide && category === 'lines' && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 px-8">
-                                    <div className="w-full flex items-center justify-around text-white/25 text-5xl sm:text-7xl font-mono tracking-widest">
-                                        <span>{selectedLine.icon}</span>
-                                        <span>{selectedLine.icon}</span>
-                                        <span>{selectedLine.icon}</span>
-                                        <span>{selectedLine.icon}</span>
-                                    </div>
-                                </div>
+                            {/* 2. Hayalet Harf & Yön Okları Kılavuzu (MEB Standart Vektör Şablon) */}
+                            {showGhostGuide && (
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                                    {getStrokesForChar(currentCharKey).map((stroke, sIdx) => {
+                                        const pts = stroke.map(p => transformStrokePoint(p, metrics));
+                                        if (pts.length < 2) {
+                                            const p = pts[0];
+                                            return (
+                                                <g key={`stroke-${sIdx}`}>
+                                                    <circle cx={p.x} cy={p.y} r={penSize * 0.75} fill="rgba(255,255,255,0.3)" />
+                                                    <circle cx={p.x} cy={p.y} r="10" fill="#f59e0b" stroke="#0f172a" strokeWidth="1.5" />
+                                                    <text x={p.x} y={p.y + 3.5} textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="bold">
+                                                        {sIdx + 1}
+                                                    </text>
+                                                </g>
+                                            );
+                                        }
+
+                                        const pathD = pts.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
+                                        const startP = pts[0];
+                                        const midIdx = Math.floor(pts.length / 2);
+                                        const midP = pts[midIdx];
+                                        const nextP = pts[Math.min(midIdx + 1, pts.length - 1)];
+                                        const angle = Math.atan2(nextP.y - midP.y, nextP.x - midP.x) * (180 / Math.PI);
+
+                                        return (
+                                            <g key={`stroke-${sIdx}`}>
+                                                {/* Kesikli kılavuz şablon çizgisi */}
+                                                <path
+                                                    d={pathD}
+                                                    fill="none"
+                                                    stroke="rgba(255, 255, 255, 0.20)"
+                                                    strokeWidth="12"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeDasharray="6 8"
+                                                />
+
+                                                {/* Akış yön oku */}
+                                                {pts.length > 2 && (
+                                                    <g transform={`translate(${midP.x}, ${midP.y}) rotate(${angle})`}>
+                                                        <polygon points="-7,-4.5 5,0 -7,4.5" fill="#38bdf8" opacity="0.85" />
+                                                    </g>
+                                                )}
+
+                                                {/* Başlangıç hamle numarası rozeti */}
+                                                <circle
+                                                    cx={startP.x}
+                                                    cy={startP.y}
+                                                    r="11"
+                                                    fill="#f59e0b"
+                                                    stroke="#0f172a"
+                                                    strokeWidth="1.5"
+                                                />
+                                                <text
+                                                    x={startP.x}
+                                                    y={startP.y + 3.5}
+                                                    textAnchor="middle"
+                                                    fill="#0f172a"
+                                                    fontSize="10"
+                                                    fontWeight="bold"
+                                                >
+                                                    {sIdx + 1}
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
                             )}
 
                             {/* 3. Etkileşimli Çizim Canvas'ı (Öğrencinin Dokunarak Çizdiği Katman) */}
                             <canvas
                                 ref={canvasRef}
-                                onMouseDown={handlePointerDown}
-                                onMouseMove={handlePointerMove}
-                                onMouseUp={handlePointerUp}
-                                onMouseLeave={handlePointerUp}
+                                onPointerDown={handlePointerDown}
+                                onPointerMove={handlePointerMove}
+                                onPointerUp={handlePointerUp}
+                                onPointerLeave={handlePointerLeave}
                                 onTouchStart={handlePointerDown}
                                 onTouchMove={handlePointerMove}
                                 onTouchEnd={handlePointerUp}
-                                className="absolute inset-0 w-full h-full cursor-crosshair z-10 touch-none"
+                                onTouchCancel={handlePointerLeave}
+                                className="absolute inset-0 w-full h-full cursor-none z-10 touch-none"
                             />
 
+                            {/* 4. Dinamik Dairesel Fırça / Silgi İmleci (Kalem Boyutuna Göre Büyür/Küçülür) */}
+                            {cursorPos.visible && !isDemonstrating && (
+                                <div
+                                    className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[width,height] duration-75 flex items-center justify-center shadow-lg"
+                                    style={{
+                                        left: `${cursorPos.x}px`,
+                                        top: `${cursorPos.y}px`,
+                                        width: `${isEraser ? penSize * 3 : penSize}px`,
+                                        height: `${isEraser ? penSize * 3 : penSize}px`,
+                                        borderColor: isEraser ? '#f43f5e' : '#ffffff',
+                                        backgroundColor: isEraser ? 'rgba(244, 63, 94, 0.25)' : `${penColor}35`,
+                                        boxShadow: `0 0 0 1px rgba(0,0,0,0.5), 0 0 12px ${isEraser ? 'rgba(244, 63, 94, 0.6)' : penColor + '99'}`
+                                    }}
+                                >
+                                    {(isEraser ? penSize * 3 : penSize) >= 10 && (
+                                        <div
+                                            className="w-1.5 h-1.5 rounded-full shadow-xs"
+                                            style={{ backgroundColor: isEraser ? '#f43f5e' : '#ffffff' }}
+                                        />
+                                    )}
+                                </div>
+                            )}
 
+                            {/* 5. Gösterim Modunda MEB Çizgilerini Takip Eden Animasyonlu Kalem */}
+                            {demoPencil && isDemonstrating && (
+                                <div
+                                    className="pointer-events-none absolute z-40 flex flex-col items-center select-none"
+                                    style={{
+                                        left: `${demoPencil.x}px`,
+                                        top: `${demoPencil.y}px`,
+                                        transform: 'translate(-4px, -100%)'
+                                    }}
+                                >
+                                    {/* Kalem ucunda çizim kıvılcımı */}
+                                    <div 
+                                        className="w-3.5 h-3.5 rounded-full animate-ping absolute bottom-0 -mb-1"
+                                        style={{ backgroundColor: penColor }}
+                                    />
+                                    {/* Kalem Görseli */}
+                                    <div className="text-2xl -rotate-45 drop-shadow-xl">
+                                        ✏️
+                                    </div>
+                                    {/* Hamle Rozeti */}
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 shadow-md whitespace-nowrap -mt-1">
+                                        {demoPencil.strokeNum}. Hamle
+                                    </span>
+                                </div>
+                            )}
 
                             {/* İpucu Göstergesi (Alt Bar) */}
                             <div className="absolute bottom-2 left-4 right-4 flex items-center justify-between text-[11px] text-slate-400 pointer-events-none z-20">
                                 <span className="bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800">
-                                    💡 Parmağınızla veya tahta kalemiyle harfin başlangıç noktasından ok yönünde çizin.
+                                    💡 Parmağınızla veya kalemle harfin başlangıç noktasından ({category === 'lines' ? 'çizgi boyunca' : 'numaralı daireden'}) ok yönünde çizin.
                                 </span>
                                 <span className="bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800 hidden sm:inline">
                                     Kılavuz Çizgi Standardı: MEB TTKB
@@ -939,13 +1238,21 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
 
                                 <button
                                     type="button"
-                                    onClick={startDemonstration}
-                                    disabled={isDemonstrating}
-                                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
-                                    title="Nasıl Yazılır?"
+                                    onClick={isDemonstrating ? stopDemonstration : startDemonstration}
+                                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                                    title={isDemonstrating ? "Durdur" : "Nasıl Yazılır?"}
                                 >
-                                    <Play className="w-3.5 h-3.5 fill-current" />
-                                    <span>Yaz</span>
+                                    {isDemonstrating ? (
+                                        <>
+                                            <Pause className="w-3.5 h-3.5 fill-current text-amber-300" />
+                                            <span className="text-amber-200">Dur</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="w-3.5 h-3.5 fill-current" />
+                                            <span>Yaz</span>
+                                        </>
+                                    )}
                                 </button>
 
                                 <button

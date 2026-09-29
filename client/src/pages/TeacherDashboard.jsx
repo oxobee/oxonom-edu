@@ -32,6 +32,49 @@ import {
 } from '../components/ui';
 import CreateBoardModal from '../components/CreateBoardModal';
 
+const ACTION_THEMES = {
+  indigo: {
+    bg: 'bg-indigo-500/[0.07] hover:bg-indigo-500/[0.13]',
+    border: 'border-indigo-500/25 hover:border-indigo-500/50',
+    iconBg: 'bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white',
+    iconShadow: 'group-hover:shadow-lg group-hover:shadow-indigo-500/30',
+    glow: 'from-indigo-500/10 via-transparent to-transparent',
+    arrow: 'text-indigo-400 group-hover:translate-x-0.5'
+  },
+  emerald: {
+    bg: 'bg-emerald-500/[0.07] hover:bg-emerald-500/[0.13]',
+    border: 'border-emerald-500/25 hover:border-emerald-500/50',
+    iconBg: 'bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white',
+    iconShadow: 'group-hover:shadow-lg group-hover:shadow-emerald-500/30',
+    glow: 'from-emerald-500/10 via-transparent to-transparent',
+    arrow: 'text-emerald-400 group-hover:translate-x-0.5'
+  },
+  amber: {
+    bg: 'bg-amber-500/[0.07] hover:bg-amber-500/[0.13]',
+    border: 'border-amber-500/25 hover:border-amber-500/50',
+    iconBg: 'bg-amber-500/20 text-amber-400 group-hover:bg-amber-500 group-hover:text-white',
+    iconShadow: 'group-hover:shadow-lg group-hover:shadow-amber-500/30',
+    glow: 'from-amber-500/10 via-transparent to-transparent',
+    arrow: 'text-amber-400 group-hover:translate-x-0.5'
+  },
+  sky: {
+    bg: 'bg-sky-500/[0.07] hover:bg-sky-500/[0.13]',
+    border: 'border-sky-500/25 hover:border-sky-500/50',
+    iconBg: 'bg-sky-500/20 text-sky-400 group-hover:bg-sky-500 group-hover:text-white',
+    iconShadow: 'group-hover:shadow-lg group-hover:shadow-sky-500/30',
+    glow: 'from-sky-500/10 via-transparent to-transparent',
+    arrow: 'text-sky-400 group-hover:translate-x-0.5'
+  },
+  rose: {
+    bg: 'bg-rose-500/[0.07] hover:bg-rose-500/[0.13]',
+    border: 'border-rose-500/25 hover:border-rose-500/50',
+    iconBg: 'bg-rose-500/20 text-rose-400 group-hover:bg-rose-500 group-hover:text-white',
+    iconShadow: 'group-hover:shadow-lg group-hover:shadow-rose-500/30',
+    glow: 'from-rose-500/10 via-transparent to-transparent',
+    arrow: 'text-rose-400 group-hover:translate-x-0.5'
+  }
+};
+
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -222,27 +265,67 @@ const TeacherDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Action Cards Grid with Staggered Entrance */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          {quickActions.map((action, idx) => {
-            const Icon = action.icon;
-            return (
-              <AnimatedItem key={idx} index={idx} stagger={0.05}>
-                <motion.button
-                  whileHover={{ y: -2, transition: { duration: 0.15 } }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(action.path)}
-                  className="w-full p-4 rounded-xl bg-card hover:bg-muted/50 border border-border text-left transition-colors duration-150 group cursor-pointer shadow-xs"
-                >
-                  <div className="w-9 h-9 rounded-lg border border-border bg-muted/50 text-foreground flex items-center justify-center mb-3 transition-colors group-hover:bg-muted">
-                    <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-105" />
-                  </div>
-                  <div className="text-xs font-semibold text-foreground tracking-tight">{action.title}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{action.subtitle}</div>
-                </motion.button>
-              </AnimatedItem>
-            );
-          })}
+        {/* Hızlı İşlemler & Kısayollar (Özel Eylem Butonları Paneli) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-xs">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="text-xs sm:text-sm font-bold text-foreground tracking-tight">
+                Hızlı Eylemler & Kısayollar
+              </h3>
+            </div>
+            <span className="text-[11px] text-muted-foreground/80 font-medium hidden sm:inline">
+              Öğretmen eylem merkezi
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {quickActions.map((action, idx) => {
+              const Icon = action.icon;
+              const theme = ACTION_THEMES[action.color] || ACTION_THEMES.indigo;
+              const isPending = action.color === 'rose' && stats.pendingMeetings > 0;
+
+              return (
+                <AnimatedItem key={idx} index={idx} stagger={0.05}>
+                  <motion.button
+                    whileHover={{ y: -3, scale: 1.015 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(action.path)}
+                    className={`w-full group relative overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md bg-gradient-to-br ${theme.glow} ${theme.bg} ${theme.border} backdrop-blur-xs flex items-center gap-3.5`}
+                  >
+                    {/* Canlı İkon Kutusu */}
+                    <div className={`w-11 h-11 rounded-xl border border-white/10 flex items-center justify-center shrink-0 transition-all duration-200 ${theme.iconBg} ${theme.iconShadow}`}>
+                      <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+                    </div>
+
+                    {/* Başlık & Açıklama */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs sm:text-sm font-bold text-foreground group-hover:text-white transition-colors truncate">
+                          {action.title}
+                        </span>
+                        {isPending && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse shrink-0 shadow-xs">
+                            {stats.pendingMeetings}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground group-hover:text-muted-foreground/90 transition-colors truncate mt-0.5 font-medium">
+                        {action.subtitle}
+                      </p>
+                    </div>
+
+                    {/* Sağ Eylem Oku */}
+                    <div className={`shrink-0 opacity-40 group-hover:opacity-100 transition-all duration-200 ${theme.arrow}`}>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </motion.button>
+                </AnimatedItem>
+              );
+            })}
+          </div>
         </div>
 
         {/* Summary Stat Cards with Staggered Entrance */}

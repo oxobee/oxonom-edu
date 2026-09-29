@@ -27,7 +27,7 @@ import LayersPanel from './LayersPanel';
 import ReadingScreen from './ReadingScreen';
 import LetterWritingScreen from './LetterWritingScreen';
 import EmojiPickerModal, { createEmojiImage } from './EmojiPickerModal';
-import { Focus, Smile } from 'lucide-react';
+import { Focus, Smile, Blocks } from 'lucide-react';
 
 const PRESET_COLORS = [
     '#ffffff', '#000000', '#475569', '#ef4444', '#f97316', '#f59e0b', '#10b981',
@@ -155,6 +155,8 @@ const Whiteboard = () => {
     const [showLayersPanel, setShowLayersPanel] = useState(false); // Layers panel visibility
     const [showReadingScreen, setShowReadingScreen] = useState(false); // İlkokul 1 Dk Okuma Ekranı
     const [showLetterWritingScreen, setShowLetterWritingScreen] = useState(false); // İlkokul Harf Çizgi & Yazılış Yönü Atölyesi
+    const [showModulesDropdown, setShowModulesDropdown] = useState(false); // Ders & Etkinlik Modülleri Açılır Menüsü
+    const modulesDropdownRef = useRef(null);
     const [showEmojiModal, setShowEmojiModal] = useState(false); // Emoji & İşaret Kütüphanesi Modalı
     const [showColorPalette, setShowColorPalette] = useState(false); // Hızlı Renk Paleti Popover
     const colorInputRef = useRef(null);
@@ -4488,6 +4490,22 @@ const Whiteboard = () => {
         };
     }, [showColorPalette]);
 
+    useEffect(() => {
+        const handleClickOutsideModules = (e) => {
+            if (modulesDropdownRef.current && !modulesDropdownRef.current.contains(e.target)) {
+                setShowModulesDropdown(false);
+            }
+        };
+        if (showModulesDropdown) {
+            document.addEventListener('mousedown', handleClickOutsideModules);
+            document.addEventListener('touchstart', handleClickOutsideModules);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutsideModules);
+            document.removeEventListener('touchstart', handleClickOutsideModules);
+        };
+    }, [showModulesDropdown]);
+
     const handleZoom = (delta) => {
         userHasManuallyPannedRef.current = true;
         setScale(prev => Math.min(Math.max(prev + delta, 0.1), 5));
@@ -5090,86 +5108,109 @@ const Whiteboard = () => {
                         </button>
                     </div>
 
-                    {/* Tools & Settings Toggle */}
-                    <AnimatePresence initial={false} mode="wait">
-                        {!isTopRightExpanded ? (
-                            <motion.button
-                                key="collapsed-right"
-                                initial={{ opacity: 0, scale: 0.85 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.85 }}
-                                transition={{ duration: 0.15 }}
-                                onClick={() => setIsTopRightExpanded(true)}
-                                className="relative p-1.5 sm:p-2 rounded-xl bg-card/90 border border-border text-foreground hover:bg-muted shadow-sm transition-all active:scale-95 cursor-pointer backdrop-blur-md flex items-center justify-center"
-                                title="Araçlar & Ayarlar"
-                            >
-                                <FaSlidersH className="text-sm text-primary" />
-                            </motion.button>
-                        ) : (
-                            <motion.div 
-                                key="expanded-right"
-                                initial={{ opacity: 0, scale: 0.9, x: 8 }}
-                                animate={{ opacity: 1, scale: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, x: 8 }}
-                                transition={{ duration: 0.18 }}
-                                className="flex items-center gap-1 sm:gap-1.5 flex-wrap bg-card/95 border border-border p-1 rounded-xl shadow-xl backdrop-blur-md"
-                            >
-                                {/* Katmanlar (Layers) Toggle Button */}
-                                <button
-                                    onClick={() => setShowLayersPanel(prev => !prev)}
-                                    className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold border shadow-xs transition-all active:scale-95 cursor-pointer ${
-                                        showLayersPanel
-                                            ? 'bg-primary text-primary-foreground border-transparent'
-                                            : 'bg-muted/60 border-border/80 text-foreground hover:bg-muted'
-                                    }`}
-                                    title="Katmanlar (Çizim ve Görselleri Yönet)"
+                    {/* Modüller Açılır Menüsü (Dropdown) */}
+                    <div className="relative" ref={modulesDropdownRef}>
+                        <button
+                            onClick={() => setShowModulesDropdown(prev => !prev)}
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border shadow-sm transition-all duration-150 active:scale-95 cursor-pointer backdrop-blur-md text-xs font-semibold ${
+                                showModulesDropdown
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                                    : 'bg-card/90 border-border text-foreground hover:bg-muted hover:border-primary/40'
+                            }`}
+                            title="Ders ve Etkinlik Modülleri"
+                        >
+                            <Blocks className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>Modüller</span>
+                            <FaChevronDown className={`w-2.5 h-2.5 opacity-70 transition-transform duration-200 ${showModulesDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                            {showModulesDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 mt-2 w-72 bg-card/95 border border-border rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl flex flex-col gap-1.5"
                                 >
-                                    <BsLayers className="text-xs sm:text-sm" />
-                                    <span className="hidden sm:inline">Katmanlar</span>
-                                </button>
+                                    <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-border/50 pb-2">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                            <Blocks className="w-3.5 h-3.5 text-amber-500" />
+                                            Eğitim Modülleri
+                                        </span>
+                                        {boardMeta?.classId && (
+                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                                {boardMeta.classId.name || `${boardMeta.classId.grade}/${boardMeta.classId.section}`}
+                                            </span>
+                                        )}
+                                    </div>
 
-                                {/* 1 Dakika Okuma Alanı - Sınıf modül yetkisine göre gösterilir */}
-                                {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('1-dk-okuma')) && (
-                                    <button
-                                        onClick={() => setShowReadingScreen(true)}
-                                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold border shadow-xs transition-all active:scale-95 cursor-pointer ${
-                                            showReadingScreen
-                                                ? 'bg-amber-500 text-white border-transparent'
-                                                : 'bg-muted/60 border-border/80 text-foreground hover:bg-muted'
-                                        }`}
-                                        title="İlkokul 1 Dakika Okuma Alanı"
-                                    >
-                                        <span className="text-xs sm:text-sm">📖</span>
-                                        <span className="hidden sm:inline">1 Dk Okuma</span>
-                                    </button>
-                                )}
+                                    {/* Harf Çizgi & Yazılış Yönü Atölyesi */}
+                                    {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi')) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowLetterWritingScreen(true);
+                                                setShowModulesDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer group ${
+                                                showLetterWritingScreen 
+                                                    ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400' 
+                                                    : 'hover:bg-muted/70 text-foreground border border-transparent hover:border-border/60'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
+                                                ✏️
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-xs tracking-tight text-foreground flex items-center justify-between">
+                                                    <span>Harf Atölyesi</span>
+                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-medium">1. Sınıf</span>
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                                    MEB Kılavuz Çizgi & Harf Yazımı
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )}
 
-                                {/* Harf Çizgi & Yazılış Yönü Atölyesi - Sınıf modül yetkisine göre gösterilir */}
-                                {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi')) && (
-                                    <button
-                                        onClick={() => setShowLetterWritingScreen(true)}
-                                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold border shadow-xs transition-all active:scale-95 cursor-pointer ${
-                                            showLetterWritingScreen
-                                                ? 'bg-amber-500 text-white border-transparent'
-                                                : 'bg-muted/60 border-border/80 text-foreground hover:bg-muted'
-                                        }`}
-                                        title="İlkokul Harf Çizgi & Yazılış Yönü Atölyesi"
-                                    >
-                                        <span className="text-xs sm:text-sm">✏️</span>
-                                        <span className="hidden sm:inline">Harf Atölyesi</span>
-                                    </button>
-                                )}
+                                    {/* 1 Dakika Okuma Alanı */}
+                                    {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('1-dk-okuma')) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowReadingScreen(true);
+                                                setShowModulesDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer group ${
+                                                showReadingScreen 
+                                                    ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-400' 
+                                                    : 'hover:bg-muted/70 text-foreground border border-transparent hover:border-border/60'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
+                                                📖
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-xs tracking-tight text-foreground flex items-center justify-between">
+                                                    <span>1 Dk Okuma</span>
+                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 font-medium">Temel</span>
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                                    Hızlı ve akıcı okuma kronometresi
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )}
 
-                                <button
-                                    onClick={() => setIsTopRightExpanded(false)}
-                                    className="p-1 sm:p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors cursor-pointer"
-                                    title="Daralt"
-                                >
-                                    <FaTimes className="text-xs" />
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                    {/* Eğer sınıfa hiçbir modül atanmamışsa */}
+                                    {boardMeta?.classId && !(boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('1-dk-okuma') && (
+                                        <div className="p-3 text-center text-xs text-muted-foreground">
+                                            Bu sınıf için henüz etkinleştirilmiş modül bulunmuyor.
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </header>
 
@@ -6736,6 +6777,25 @@ const Whiteboard = () => {
                                         <FaTrash className="text-xs sm:text-base" />
                                     </button>
                                 )}
+
+                                {/* Katmanlar (Layers) Butonu */}
+                                <div className="relative group items-center justify-center flex">
+                                    <button 
+                                        onClick={() => setShowLayersPanel(prev => !prev)} 
+                                        aria-label="Katmanlar (Çizim ve Görselleri Yönet)" 
+                                        className={`p-2 sm:p-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer shrink-0 ${
+                                            showLayersPanel 
+                                                ? 'bg-primary text-primary-foreground shadow-xs' 
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                                        }`} 
+                                        title="Katmanlar (Çizim ve Görselleri Yönet)"
+                                    >
+                                        <BsLayers className="text-sm sm:text-base" />
+                                    </button>
+                                    <div className="absolute -bottom-8 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-50">
+                                        Katmanlar
+                                    </div>
+                                </div>
 
                                 <div className="hidden sm:flex relative group items-center justify-center">
                                     <button 

@@ -29,6 +29,7 @@ import LetterWritingScreen from '../components/LetterWritingScreen';
 import ReadingScreen from '../components/ReadingScreen';
 import RhythmicCountingScreen from '../components/RhythmicCountingScreen';
 import SolarSystemScreen from '../components/SolarSystemScreen';
+import ClassroomToolsScreen from '../components/ClassroomToolsScreen';
 import {
   PageHeader,
   Card,
@@ -229,7 +230,8 @@ const ModulesPage = () => {
       mod.key === 'harf-cizgi-atolyesi' ||
       mod.key === '1-dk-okuma' ||
       mod.key === 'ritmik-sayma-atolyesi' ||
-      mod.key === 'gunes-sistemi-atolyesi'
+      mod.key === 'gunes-sistemi-atolyesi' ||
+      mod.key === 'sinif-carki-zamanlayici'
     ) {
       setRunningModules(prev => ({ ...prev, [mod.key]: true }));
     } else {
@@ -1203,6 +1205,13 @@ const ModulesPage = () => {
           <SolarSystemScreen
             isOpen={true}
             onClose={() => setRunningModules(prev => ({ ...prev, 'gunes-sistemi-atolyesi': false }))}
+          />
+        )}
+
+        {runningModules['sinif-carki-zamanlayici'] && (
+          <ClassroomToolsScreen
+            isOpen={true}
+            onClose={() => setRunningModules(prev => ({ ...prev, 'sinif-carki-zamanlayici': false }))}
           />
         )}
       </div>

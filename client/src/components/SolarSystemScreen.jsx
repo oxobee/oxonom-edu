@@ -36,32 +36,87 @@ function playSuccessChime() {
   setTimeout(() => playSpaceBeep(783.99, 0.2), 180);
 }
 
-// Türkçe Sesli Anlatım Motoru (Web Speech API)
-function speakPlanetVoice(body, onEndCallback) {
-  if (!('speechSynthesis' in window)) return;
-  try {
-    window.speechSynthesis.cancel(); // Mevcut seslendirmeyi durdur
-
-    const speechText = `${body.name}. ${body.tagline}. ${body.funFact}`;
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    utterance.lang = 'tr-TR';
-    utterance.rate = 0.92; // Çocuklar için sakin ve net tempo
-    utterance.pitch = 1.05; // Samimi ve canlı tonlama
-
-    if (onEndCallback) {
-      utterance.onend = onEndCallback;
-      utterance.onerror = onEndCallback;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  } catch (_) {}
-}
+// ==========================================
+// TÜRKÇE DOĞAL VE AKICI SESLENDİRME MOTORU
+// 1. Öncelik: Google Neural Audio (Stüdyo Kalitesinde Doğal Türkçe Ses)
+// 2. Yedek: Web Speech API (tr-TR Doğal Ses Filtresi)
+// ==========================================
+let currentAudioInstance = null;
 
 function stopVoice() {
+  if (currentAudioInstance) {
+    try {
+      currentAudioInstance.pause();
+      currentAudioInstance.currentTime = 0;
+    } catch (_) {}
+    currentAudioInstance = null;
+  }
   if ('speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
     } catch (_) {}
+  }
+}
+
+function speakWithWebSpeechFallback(text, onEnd) {
+  if (!('speechSynthesis' in window)) {
+    if (onEnd) onEnd();
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+
+    // Tarayıcıdaki en kaliteli Türkçe sesi seç (Google, Yelda, Cem, Ahmet vs.)
+    const voices = window.speechSynthesis.getVoices();
+    const trVoice = voices.find(v => 
+      (v.lang === 'tr-TR' || v.lang === 'tr') && 
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Yelda') || v.name.includes('Cem') || v.name.includes('Ahmet'))
+    ) || voices.find(v => v.lang === 'tr-TR' || v.lang === 'tr');
+
+    if (trVoice) {
+      utterance.voice = trVoice;
+    }
+    utterance.rate = 0.94;
+    utterance.pitch = 1.02;
+
+    utterance.onend = () => { if (onEnd) onEnd(); };
+    utterance.onerror = () => { if (onEnd) onEnd(); };
+
+    window.speechSynthesis.speak(utterance);
+  } catch (_) {
+    if (onEnd) onEnd();
+  }
+}
+
+function playTurkishVoice(body, onStart, onEnd) {
+  stopVoice();
+  if (onStart) onStart();
+
+  const narrationText = body.speechNarration || `${body.name}. ${body.tagline}. ${body.funFact}`;
+  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=tr&client=tw-ob&q=${encodeURIComponent(narrationText)}`;
+
+  try {
+    const audio = new Audio(ttsUrl);
+    currentAudioInstance = audio;
+
+    audio.onended = () => {
+      currentAudioInstance = null;
+      if (onEnd) onEnd();
+    };
+
+    audio.onerror = () => {
+      currentAudioInstance = null;
+      speakWithWebSpeechFallback(narrationText, onEnd);
+    };
+
+    audio.play().catch(() => {
+      currentAudioInstance = null;
+      speakWithWebSpeechFallback(narrationText, onEnd);
+    });
+  } catch (_) {
+    speakWithWebSpeechFallback(narrationText, onEnd);
   }
 }
 
@@ -290,8 +345,9 @@ const CELESTIAL_BODIES = [
     dayLength: '27 Dünya günü (ekvator)',
     yearLength: '230 Milyon yıl (Galaksi turu)',
     temperature: '+5.500°C (Yüzey), 15 Milyon°C (Çekirdek)',
-    moons: 8, // 8 ana gezegen
+    moons: 8,
     funFact: 'Güneş o kadar büyüktür ki içerisine tam 1.300.000 adet Dünya sığabilir! Güneş Sistemi\'nin toplam kütlesinin %99.8\'ini tek başına oluşturur.',
+    speechNarration: "Güneş, sistemimizin merkezindeki devasa ve sıcak yıldızımızdır. Tüm gezegenleri yerçekimiyle bir arada tutar ve Dünya'mıza hayat veren ısı ve ışığı sağlar.",
     imageEmoji: '☀️',
     badgeColor: 'bg-amber-500 text-slate-950 font-bold'
   },
@@ -302,7 +358,7 @@ const CELESTIAL_BODIES = [
     type: 'Karasal Gezegen',
     radius3D: 2.2,
     orbitDist: 34,
-    orbitSpeed: 0.009, // Sakin, pedagojik hız
+    orbitSpeed: 0.009,
     rotationSpeed: 0.004,
     distanceFromSun: '57.9 Milyon km',
     diameter: '4.879 km',
@@ -311,6 +367,7 @@ const CELESTIAL_BODIES = [
     temperature: '-180°C ile +430°C',
     moons: 0,
     funFact: 'Merkür\'ün atmosferi neredeyse yoktur. Güneş\'i gören tarafı fırın gibi kavrulurken, arkası uzayın dondurucu soğuğundadır.',
+    speechNarration: "Merkür, Güneş'e en yakın ve en küçük gezegendir. Neredeyse hiç atmosferi olmadığı için gündüzleri aşırı sıcak, geceleri ise dondurucu derecede soğuktur.",
     imageEmoji: '🪨',
     badgeColor: 'bg-slate-700 text-slate-200'
   },
@@ -322,7 +379,7 @@ const CELESTIAL_BODIES = [
     radius3D: 3.4,
     orbitDist: 48,
     orbitSpeed: 0.007,
-    rotationSpeed: -0.002, // Ters dönüş!
+    rotationSpeed: -0.002,
     distanceFromSun: '108.2 Milyon km',
     diameter: '12.104 km',
     dayLength: '243 Dünya günü',
@@ -330,6 +387,7 @@ const CELESTIAL_BODIES = [
     temperature: '+465°C',
     moons: 0,
     funFact: 'Venüs diğer gezegenlerin tersi yönde döner. Gökyüzünde çok parlak parıldadığı için halk arasında "Çoban Yıldızı" olarak bilinir.',
+    speechNarration: "Venüs, Güneş Sistemi'nin en sıcak gezegenidir. Gökyüzünde çok parlak parladığı için Çoban Yıldızı olarak da bilinir ve diğer gezegenlerin tersi yönde döner.",
     imageEmoji: '🟡',
     badgeColor: 'bg-amber-600 text-amber-100'
   },
@@ -348,8 +406,9 @@ const CELESTIAL_BODIES = [
     dayLength: '24 saat (1 Gün)',
     yearLength: '365 gün 6 saat (1 Yıl)',
     temperature: '+15°C (ortalama)',
-    moons: 1, // Ay
+    moons: 1,
     funFact: 'Üzerinde sıvı su ve bildiğimiz canlı yaşamı olan tek gezegendir. Yüzeyinin %71\'i okyanuslarla kaplıdır.',
+    speechNarration: "Dünya, üzerinde nefes alabildiğimiz ve canlı yaşamı olan mavi yuvamızdır. Yüzeyinin büyük kısmı masmavi okyanuslarla kaplıdır ve tek uydusu Ay'dır.",
     imageEmoji: '🌍',
     badgeColor: 'bg-blue-600 text-blue-100'
   },
@@ -359,7 +418,7 @@ const CELESTIAL_BODIES = [
     tagline: 'Dünya\'mızın Tek Doğal Uydusu',
     type: 'Doğal Uydu',
     radius3D: 1.4,
-    orbitDist: 66, // Dünya ile birlikte hareket eder
+    orbitDist: 66,
     orbitSpeed: 0.0055,
     rotationSpeed: 0.01,
     distanceFromSun: '149.6 Milyon km (Dünya\'ya: 384.400 km)',
@@ -369,6 +428,7 @@ const CELESTIAL_BODIES = [
     temperature: '-130°C ile +120°C',
     moons: 0,
     funFact: 'Ay kendi ışığını üretmez, Güneş\'ten aldığı ışığı yansıtır. Dünya etrafındaki turunu yaklaşık 29 günde tamamlayarak 4 ana evresini oluşturur.',
+    speechNarration: "Ay, Dünya'mızın tek doğal uydusudur. Kendi ışığı yoktur, Güneş'in ışığını yansıtır. Dünya etrafında dolanırken hilal, ilk dördün ve dolunay evrelerini oluşturur.",
     imageEmoji: '🌕',
     badgeColor: 'bg-slate-500 text-white'
   },
@@ -387,8 +447,9 @@ const CELESTIAL_BODIES = [
     dayLength: '24 saat 37 dakika',
     yearLength: '687 Dünya günü',
     temperature: '-63°C (ortalama)',
-    moons: 2, // Phobos & Deimos
+    moons: 2,
     funFact: 'Toprağındaki pas (demir oksit) nedeniyle kızıl renkte görünür. Güneş Sistemi\'nin en yüksek yanardağı Olympus Mons buradadır.',
+    speechNarration: "Mars, toprağındaki paslı demir mineralleri nedeniyle kırmızı görünen Kızıl Gezegendir. Güneş Sistemi'nin en yüksek volkanı olan Olympus Mons burada bulunur.",
     imageEmoji: '🔴',
     badgeColor: 'bg-rose-700 text-rose-100'
   },
@@ -408,6 +469,7 @@ const CELESTIAL_BODIES = [
     temperature: '-110°C',
     moons: 95,
     funFact: 'Güneş Sistemi\'ndeki diğer tüm gezegenlerin toplamından daha büyüktür! Üzerindeki "Büyük Kırmızı Leke" asırlardır süren dev bir fırtınadır.',
+    speechNarration: "Jüpiter, Güneş Sistemi'ndeki en büyük dev gaz gezegenidir. Üzerindeki meşhur Büyük Kırmızı Leke, yüzlerce yıldır devam eden devasa bir fırtınadır.",
     imageEmoji: '🟠',
     badgeColor: 'bg-orange-600 text-orange-100'
   },
@@ -429,6 +491,7 @@ const CELESTIAL_BODIES = [
     temperature: '-140°C',
     moons: 146,
     funFact: 'Muazzam buz ve kaya halkaları vardır. Yoğunluğu sudan hafif olan tek gezegendir (devasa bir havuza konsa yüzerdi!).',
+    speechNarration: "Satürn, buz ve kaya parçalarından oluşan muhteşem halkalarıyla tanınır. Sudan bile daha hafif bir yoğunluğa sahip olan büyüleyici bir gaz devidir.",
     imageEmoji: '🪐',
     badgeColor: 'bg-yellow-600 text-yellow-100'
   },
@@ -449,6 +512,7 @@ const CELESTIAL_BODIES = [
     temperature: '-195°C',
     moons: 28,
     funFact: 'Dönme ekseni 98° eğiktir; adeta yan yatmış bir fıçı gibi yuvarlanarak Güneş etrafında dolanır.',
+    speechNarration: "Uranüs, masmavi bir buz devidir. Dönme ekseni doksan sekiz derece eğik olduğu için adeta yan yatmış bir fıçı gibi yuvarlanarak Güneş'in etrafında döner.",
     imageEmoji: '🌐',
     badgeColor: 'bg-cyan-600 text-cyan-100'
   },
@@ -468,6 +532,7 @@ const CELESTIAL_BODIES = [
     temperature: '-200°C',
     moons: 16,
     funFact: 'Güneş Sistemi\'nin en güçlü fırtınalarına sahiptir (saatte 2.000 km hız!). Güneş etrafında 1 turu tam 165 yıl sürer.',
+    speechNarration: "Neptün, Güneş'e en uzak olan buz devidir. Derin kobalt mavisi rengi ve saatte iki bin kilometreye varan rüzgarlarıyla en fırtınalı gezegendir.",
     imageEmoji: '🔵',
     badgeColor: 'bg-blue-700 text-blue-100'
   }
@@ -1007,19 +1072,20 @@ export default function SolarSystemScreen({ isOpen = true, onClose, onAddToCanva
     if (soundEnabled) playSpaceBeep(380, 0.1);
   };
 
-  // Çift Tık: Yakınlaş ve Sesli Olarak Özelliğini Söyle!
+  // Çift Tık: Yakınlaş ve Doğal Türkçe Sesle Özelliğini Söyle!
   const handleDoubleClickBody = (id) => {
     setSelectedBodyId(id);
     setOpenedLabelId(id);
     setCameraMode('focus');
-    setIsSpeaking(true);
 
     const bodyObj = CELESTIAL_BODIES.find(b => b.id === id);
     if (bodyObj) {
       if (soundEnabled) playSuccessChime();
-      speakPlanetVoice(bodyObj, () => {
-        setIsSpeaking(false);
-      });
+      playTurkishVoice(
+        bodyObj,
+        () => setIsSpeaking(true),
+        () => setIsSpeaking(false)
+      );
     }
   };
 
@@ -1029,10 +1095,11 @@ export default function SolarSystemScreen({ isOpen = true, onClose, onAddToCanva
       stopVoice();
       setIsSpeaking(false);
     } else {
-      setIsSpeaking(true);
-      speakPlanetVoice(selectedBody, () => {
-        setIsSpeaking(false);
-      });
+      playTurkishVoice(
+        selectedBody,
+        () => setIsSpeaking(true),
+        () => setIsSpeaking(false)
+      );
     }
   };
 
@@ -1533,6 +1600,32 @@ export default function SolarSystemScreen({ isOpen = true, onClose, onAddToCanva
                   <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[10px] sm:text-[11px] text-cyan-200 leading-relaxed">
                     <span className="font-bold text-cyan-300 block mb-0.5">💡 Çocuklar İçin İlginç Bilgi:</span>
                     {selectedBody.funFact}
+                  </div>
+
+                  {/* Doğal Türkçe Sesli Anlatım Kutusu */}
+                  <div className={`p-2.5 rounded-xl border text-[11px] space-y-1.5 transition-all ${
+                    isSpeaking 
+                      ? 'bg-rose-950/40 border-rose-500/50 shadow-md ring-1 ring-rose-500/30' 
+                      : 'bg-slate-900/90 border-slate-800'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[10px] text-cyan-300 flex items-center gap-1.5">
+                        <Mic className={`w-3.5 h-3.5 ${isSpeaking ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`} />
+                        <span>{isSpeaking ? '🔊 Sesli Rehber Anlatıyor...' : '🎙️ Doğal Türkçe Sesli Rehber'}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={toggleVoiceNarration}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition ${
+                          isSpeaking ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'
+                        }`}
+                      >
+                        {isSpeaking ? 'Durdur' : 'Dinle 🔊'}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-relaxed italic">
+                      "{selectedBody.speechNarration}"
+                    </p>
                   </div>
                 </div>
               </div>

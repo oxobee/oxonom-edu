@@ -655,25 +655,6 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                                         Dev
                                     </button>
                                 </div>
-
-                                {onAddToCanvas && (
-                                    <button
-                                        onClick={() => {
-                                            onAddToCanvas({
-                                                text: activePracticeText,
-                                                title: fontMode === 'kilavuzlu' ? 'Kılavuzlu Harf Çalışması' : 'Standart Harf Çalışması',
-                                                fontFamily: fontMode === 'kilavuzlu' ? 'TTKBDikTemel-Kilavuzlu' : 'TTKBDikTemel-Normal',
-                                                fontSize: 48
-                                            });
-                                            if (onClose) onClose();
-                                        }}
-                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
-                                        title="Bu harf veya kelimeyi panoya aktar"
-                                    >
-                                        <Share2 className="w-3 h-3" />
-                                        <span className="hidden md:inline">Panoya Aktar</span>
-                                    </button>
-                                )}
                             </div>
                         </div>
 

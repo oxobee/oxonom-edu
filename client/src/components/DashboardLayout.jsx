@@ -113,6 +113,7 @@ const DashboardLayout = ({ children }) => {
       group: 'Derslerim & Görevler',
       items: [
         { name: 'Mevcut Tahtalar', path: '/my-boards', icon: Presentation },
+        { name: 'Modüller', path: '/modules', icon: Blocks },
         { name: 'Ödevlerim', path: '/my-assignments', icon: BookOpen },
         { name: 'Sınavlarım', path: '/my-exams', icon: Award },
         { name: 'Devamsızlık', path: '/my-attendance', icon: CalendarCheck },

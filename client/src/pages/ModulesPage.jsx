@@ -22,6 +22,8 @@ import {
 import api from '../lib/api';
 import DashboardLayout from '../components/DashboardLayout';
 import ModuleMediaSlider from '../components/ModuleMediaSlider';
+import LetterWritingScreen from '../components/LetterWritingScreen';
+import ReadingScreen from '../components/ReadingScreen';
 import {
   PageHeader,
   Card,
@@ -35,9 +37,18 @@ import {
 } from '../components/ui';
 
 const ModulesPage = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [modules, setModules] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(user.role || 'teacher');
+  const [studentClassInfo, setStudentClassInfo] = useState(null);
+
+  // Standalone Running Module (Tahtaya ihtiyaç duymadan doğrudan çalıştırma)
+  const [activeRunningModule, setActiveRunningModule] = useState(null); // 'harf-cizgi-atolyesi' | '1-dk-okuma'
+
+  // Sınıf Filtresi State'i ('all' veya classId)
+  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
 
   // Detail Modal state
   const [selectedModule, setSelectedModule] = useState(null);
@@ -58,6 +69,8 @@ const ModulesPage = () => {
       const res = await api.get('/api/modules');
       setModules(res.data.modules || []);
       setTeacherClasses(res.data.teacherClasses || []);
+      if (res.data.role) setUserRole(res.data.role);
+      if (res.data.studentClass) setStudentClassInfo(res.data.studentClass);
     } catch (err) {
       console.error('Error fetching modules:', err);
     } finally {
@@ -129,6 +142,15 @@ const ModulesPage = () => {
     }
   };
 
+  const targetClass = teacherClasses.find(c => c._id === selectedClassFilter);
+  const displayedModules = modules.filter(m => {
+    if (selectedClassFilter === 'all') return true;
+    if (!targetClass) return true;
+    const isKeyEnabled = (targetClass.enabledModules || []).includes(m.key);
+    const isGradeMatch = !Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(targetClass.grade);
+    return isKeyEnabled && isGradeMatch;
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -141,25 +163,93 @@ const ModulesPage = () => {
           badge="✨ Eklentiler & Ek Modüller"
           badgeVariant="primary"
           title="Eğitim & Tahta Modülleri"
-          description="Derslerinizi ve akıllı tahta deneyiminizi zenginleştiren özel ek araçlar. Modülleri dilediğiniz sınıflara atayabilir veya kapatabilirsiniz."
+          description="Derslerinizi ve akıllı tahta deneyiminizi zenginleştiren özel ek araçlar. Modülleri dilediğiniz sınıflara atayabilir veya tahtaya gerek kalmadan doğrudan başlatabilirsiniz."
         />
+
+        {/* Sınıf Filtresi (Öğretmenler İçin) veya Sınıf Bilgi Rozeti (Öğrenciler İçin) */}
+        {userRole === 'student' && studentClassInfo ? (
+          <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-lg shrink-0">
+                🎓
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  {studentClassInfo.name} ({studentClassInfo.grade}. Sınıf)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Öğretmeninizin sınıfınız için aktif ettiği ders ve etkinlik modülleri aşağıda listelenmiştir.
+                </p>
+              </div>
+            </div>
+            <Badge variant="primary" size="sm" className="shrink-0">
+              {displayedModules.length} Aktif Modül
+            </Badge>
+          </div>
+        ) : teacherClasses.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1.5 shrink-0">
+              <School className="w-3.5 h-3.5 text-primary" />
+              Sınıfa Göre Filtrele:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedClassFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                selectedClassFilter === 'all'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              Tüm Modüller ({modules.length})
+            </button>
+            {teacherClasses.map((cls) => {
+              const count = modules.filter(m => 
+                (cls.enabledModules || []).includes(m.key) && 
+                (!Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(cls.grade))
+              ).length;
+
+              return (
+                <button
+                  key={cls._id}
+                  type="button"
+                  onClick={() => setSelectedClassFilter(cls._id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    selectedClassFilter === cls._id
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span>{cls.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    selectedClassFilter === cls._id
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-muted-foreground/20 text-muted-foreground'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {loading ? (
           <div className="p-20 text-center text-muted-foreground text-sm space-y-3">
             <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
             <p>Modüller yükleniyor...</p>
           </div>
-        ) : modules.length === 0 ? (
+        ) : displayedModules.length === 0 ? (
           <Card className="chrome-pattern p-12">
             <EmptyState
               icon={Blocks}
-              title="Aktif Modül Bulunmuyor"
-              description="Sistem yöneticisi tarafından henüz aktif bir modül eklenmemiş."
+              title="Bu Sınıf İçin Aktif Modül Bulunmuyor"
+              description={userRole === 'student' ? 'Öğretmeniniz sınıfınız için henüz bir modül aktif etmedi.' : 'Seçili sınıf için henüz tanımlı bir modül bulunmuyor. "Tüm Modüller" sekmesinden istediğiniz modülleri bu sınıfa atayabilirsiniz.'}
             />
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {modules.map((mod) => {
+            {displayedModules.map((mod) => {
               const isAssignedToAny = mod.assignedCount > 0;
               const assignedNames = (mod.assignedClasses || []).map(c => c.name).join(', ');
 
@@ -244,47 +334,66 @@ const ModulesPage = () => {
 
                       {/* Card Footer: Sınıf Durumu ve Geniş, Ferah Butonlar */}
                       <div className="pt-3 border-t border-border/60 space-y-3">
-                        {/* Sınıf Durumu Barı */}
-                        <div className="flex items-center justify-between gap-2 text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/60">
-                          <span className="text-muted-foreground font-medium text-[11px] shrink-0">Sınıf Durumu:</span>
-                          {isAssignedToAny ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 truncate text-right">
-                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{mod.assignedCount} Sınıfta Etkin ({assignedNames})</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
-                              <span>Tümünde Pasif</span>
-                            </span>
-                          )}
-                        </div>
+                        {/* Sınıf Durumu Barı (Öğretmenler için) */}
+                        {userRole !== 'student' && (
+                          <div className="flex items-center justify-between gap-2 text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/60">
+                            <span className="text-muted-foreground font-medium text-[11px] shrink-0">Sınıf Durumu:</span>
+                            {isAssignedToAny ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 truncate text-right">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{mod.assignedCount} Sınıfta Etkin ({assignedNames})</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                                <span>Tümünde Pasif</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
 
-                        {/* Action Buttons: Yazılar sıkışmaz, ferah ve tek satırda kalır */}
+                        {/* Action Buttons: Modülü Başlat, İncele, Ata */}
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveRunningModule(mod.key);
+                            }}
+                            className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                            title="Modülü Tahtaya İhtiyaç Duymadan Doğrudan Başlat"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Modülü Başlat</span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenDetails(mod);
                             }}
-                            className="flex-1 py-2.5 px-3 rounded-xl border border-border/80 hover:border-primary/40 bg-card hover:bg-muted/70 text-foreground text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98] shadow-2xs"
+                            className="py-2.5 px-3 rounded-xl border border-border/80 hover:border-primary/40 bg-card hover:bg-muted/70 text-foreground text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap active:scale-[0.98] shadow-2xs"
+                            title="Modül Bilgileri ve Tanıtım"
                           >
                             <Info className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span>İncele</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenAssignModal(mod);
-                            }}
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap active:scale-[0.98]"
-                          >
-                            <Settings2 className="w-3.5 h-3.5 shrink-0" />
-                            <span>Sınıflara Ata</span>
-                          </button>
+                          {userRole !== 'student' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAssignModal(mod);
+                              }}
+                              className="py-2.5 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs whitespace-nowrap active:scale-[0.98]"
+                              title="Sınıf Yetkilerini Ayarla"
+                            >
+                              <Settings2 className="w-3.5 h-3.5 shrink-0" />
+                              <span className="hidden sm:inline">Ata</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -466,20 +575,35 @@ const ModulesPage = () => {
                   </span>
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => {
+                        const key = selectedModule.key;
+                        setSelectedModule(null);
+                        setActiveRunningModule(key);
+                      }}
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Modülü Başlat</span>
+                    </Button>
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedModule(null)}
                     >
                       Kapat
                     </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      loading={savingAssignment}
-                      onClick={() => handleSaveAssignment(selectedModule.key)}
-                    >
-                      Sınıf Yetkilerini Kaydet
-                    </Button>
+                    {userRole !== 'student' && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={savingAssignment}
+                        onClick={() => handleSaveAssignment(selectedModule.key)}
+                      >
+                        Sınıf Yetkilerini Kaydet
+                      </Button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -615,6 +739,22 @@ const ModulesPage = () => {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Harf Çizgi & Yazılış Yönü Atölyesi Bağımsız Çalıştırıcı */}
+        {activeRunningModule === 'harf-cizgi-atolyesi' && (
+          <LetterWritingScreen
+            isOpen={true}
+            onClose={() => setActiveRunningModule(null)}
+          />
+        )}
+
+        {/* 1 Dakika Okuma Alanı Bağımsız Çalıştırıcı */}
+        {activeRunningModule === '1-dk-okuma' && (
+          <ReadingScreen
+            isOpen={true}
+            onClose={() => setActiveRunningModule(null)}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

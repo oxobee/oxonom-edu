@@ -7028,31 +7028,6 @@ const Whiteboard = () => {
                 <LetterWritingScreen
                     isOpen={showLetterWritingScreen}
                     onClose={() => setShowLetterWritingScreen(false)}
-                    onAddToCanvas={(dataUrl) => {
-                        const canvas = canvasRef.current;
-                        const cw = canvas ? canvas.width : 1200;
-                        const ch = canvas ? canvas.height : 800;
-                        const x = (-panOffset.x + (cw / (scale || 1)) / 2) - 300;
-                        const y = (-panOffset.y + (ch / (scale || 1)) / 2) - 200;
-
-                        const newElement = {
-                            id: crypto.randomUUID(),
-                            type: 'image',
-                            dataURL: dataUrl,
-                            src: dataUrl,
-                            x: Math.max(40, x),
-                            y: Math.max(40, y),
-                            width: 600,
-                            height: 380,
-                            timestamp: Date.now()
-                        };
-
-                        setElements(prev => [...prev, newElement]);
-                        if (socket) {
-                            socket.emit('draw-element', { roomId, socketId: socket.id, userId: (userRef.current || user)?.id, ...newElement });
-                        }
-                        setTimeout(() => renderCanvas(), 20);
-                    }}
                 />
             )}
 

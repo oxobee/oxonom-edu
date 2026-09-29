@@ -105,7 +105,7 @@ const PEN_COLORS = [
     { name: 'Saf Beyaz', hex: '#ffffff' }
 ];
 
-export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCanvas }) {
+export default function LetterWritingScreen({ isOpen = true, onClose }) {
     // Kategori: 'letters', 'numbers', 'lines'
     const [category, setCategory] = useState('letters');
     const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
@@ -123,6 +123,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCan
     const [isDemonstrating, setIsDemonstrating] = useState(false);
     const [hasDrawn, setHasDrawn] = useState(false);
     const [scoreCelebration, setScoreCelebration] = useState(false);
+    const [validationFeedback, setValidationFeedback] = useState(null); // { status: 'success' | 'retry', title: string, message: string }
 
     // Pencere Durumu & Taşıma
     const [windowState, setWindowState] = useState('normal'); // 'normal', 'maximized'
@@ -183,6 +184,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCan
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         setHasDrawn(false);
         setScoreCelebration(false);
+        setValidationFeedback(null);
     };
 
     // Sesli Telaffuz / Fonetik Ses Çalma
@@ -308,61 +310,207 @@ export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCan
         lastPointRef.current = null;
     };
 
-    // Harfi Tamamlama & Tebrik Kontrolü
-    const handleCompleteLetter = () => {
-        setScoreCelebration(true);
-        playCelebrationSound();
-        setTimeout(() => setScoreCelebration(false), 3000);
+    // Teşvik Edici / Tekrar Dene Ses Tonu (Web Audio Synthesizer)
+    const playRetrySound = () => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            
+            // 2'li yumuşak uyarı tonu (D4, A3) - çocuğu korkutmayan, dostça teşvik melodisi
+            const notes = [293.66, 220.00];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                const startTime = ctx.currentTime + idx * 0.16;
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(0.22, startTime + 0.04);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.38);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start(startTime);
+                osc.stop(startTime + 0.45);
+            });
+        } catch (e) {
+            console.error('Audio error:', e);
+        }
     };
 
-    // Tahtaya Aktar (Canvas + Kılavuz Çizgileri Birleştirilip Arkadaki Tahtaya Gönderilir)
-    const handleExportToWhiteboard = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    // Akıllı Çizim & Harf Doğruluk Kontrolü
+    const evaluateDrawingAccuracy = () => {
+        const userCanvas = canvasRef.current;
+        if (!userCanvas) return { passed: false, reason: 'empty', title: 'Çizim Yapılmadı', message: 'Lütfen önce harfin üzerinden geçerek çizim yapınız.' };
 
-        // Geçici bir export canvas'ı oluştur (Kılavuz çizgileri ve çizimi birleştir)
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = canvas.width;
-        exportCanvas.height = canvas.height;
-        const ctx = exportCanvas.getContext('2d');
+        const testSize = 200;
+        const targetCanvas = document.createElement('canvas');
+        targetCanvas.width = testSize;
+        targetCanvas.height = testSize;
+        const targetCtx = targetCanvas.getContext('2d');
 
-        // Arka plan
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.strokeStyle = '#ffffff';
+        targetCtx.textAlign = 'center';
+        targetCtx.textBaseline = 'middle';
 
-        // Kılavuz çizgilerini çiz
-        const h = exportCanvas.height;
-        const w = exportCanvas.width;
-        const line1 = h * 0.22;
-        const line2 = h * 0.42;
-        const line3 = h * 0.62;
-        const line4 = h * 0.82;
-
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; // Üst mavi çizgi
-        ctx.beginPath(); ctx.moveTo(0, line1); ctx.lineTo(w, line1); ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)'; // Orta kesikli çizgi
-        ctx.setLineDash([8, 8]);
-        ctx.beginPath(); ctx.moveTo(0, line2); ctx.lineTo(w, line2); ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.strokeStyle = 'rgba(244, 63, 94, 0.6)'; // Kırmızı/pembe taban çizgisi
-        ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(0, line3); ctx.lineTo(w, line3); ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; // Alt mavi çizgi
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(0, line4); ctx.lineTo(w, line4); ctx.stroke();
-
-        // Öğrencinin çizimini üzerine yapıştır
-        ctx.drawImage(canvas, 0, 0);
-
-        const dataUrl = exportCanvas.toDataURL('image/png');
-        if (onAddToCanvas) {
-            onAddToCanvas(dataUrl, `Harf Çalışması: ${currentChar}`);
+        if (category === 'lines') {
+            targetCtx.lineWidth = 16;
+            targetCtx.lineCap = 'round';
+            targetCtx.lineJoin = 'round';
+            targetCtx.beginPath();
+            if (selectedLine.id === 'l1') {
+                targetCtx.moveTo(testSize / 2, testSize * 0.2);
+                targetCtx.lineTo(testSize / 2, testSize * 0.8);
+            } else if (selectedLine.id === 'l2') {
+                targetCtx.moveTo(testSize * 0.2, testSize / 2);
+                targetCtx.lineTo(testSize * 0.8, testSize / 2);
+            } else if (selectedLine.id === 'l3') {
+                targetCtx.moveTo(testSize * 0.25, testSize * 0.75);
+                targetCtx.lineTo(testSize * 0.75, testSize * 0.25);
+            } else if (selectedLine.id === 'l4') {
+                targetCtx.moveTo(testSize * 0.75, testSize * 0.75);
+                targetCtx.lineTo(testSize * 0.25, testSize * 0.25);
+            } else if (selectedLine.id === 'l5') {
+                for (let x = 30; x <= 170; x += 5) {
+                    const y = testSize / 2 + Math.sin((x - 30) / 140 * Math.PI * 4) * 25;
+                    if (x === 30) targetCtx.moveTo(x, y); else targetCtx.lineTo(x, y);
+                }
+            } else {
+                targetCtx.arc(testSize / 2, testSize / 2, 45, 0, Math.PI * 2);
+            }
+            targetCtx.stroke();
+        } else {
+            // Harf veya Rakam
+            const fontName = 'TTKBDikTemel-Kilavuzlu, TTKBDikTemel-Normal, system-ui, sans-serif';
+            targetCtx.font = `bold 120px ${fontName}`;
+            targetCtx.lineWidth = 28;
+            targetCtx.lineCap = 'round';
+            targetCtx.lineJoin = 'round';
+            targetCtx.strokeText(currentChar, testSize / 2, testSize / 2);
+            targetCtx.fillText(currentChar, testSize / 2, testSize / 2);
         }
-        alert(`"${currentChar}" çalışması tahtanıza başarıyla aktarıldı! ✨`);
+
+        const userScaledCanvas = document.createElement('canvas');
+        userScaledCanvas.width = testSize;
+        userScaledCanvas.height = testSize;
+        const userScaledCtx = userScaledCanvas.getContext('2d');
+        userScaledCtx.drawImage(userCanvas, 0, 0, testSize, testSize);
+
+        const targetData = targetCtx.getImageData(0, 0, testSize, testSize).data;
+        const userData = userScaledCtx.getImageData(0, 0, testSize, testSize).data;
+
+        let totalTargetPixels = 0;
+        let totalUserPixels = 0;
+        let matchedPixels = 0;
+        let strayPixels = 0;
+
+        const isNearTarget = (x, y) => {
+            const range = 3; // Çocuklar için hoşgörülü tolerans bandı
+            for (let dy = -range; dy <= range; dy++) {
+                for (let dx = -range; dx <= range; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < testSize && ny >= 0 && ny < testSize) {
+                        const nIdx = (ny * testSize + nx) * 4;
+                        if (targetData[nIdx + 3] > 35) return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        for (let y = 0; y < testSize; y += 2) {
+            for (let x = 0; x < testSize; x += 2) {
+                const idx = (y * testSize + x) * 4;
+                const isTarget = targetData[idx + 3] > 35;
+                const isUser = userData[idx + 3] > 30;
+
+                if (isTarget) totalTargetPixels++;
+                if (isUser) {
+                    totalUserPixels++;
+                    if (isNearTarget(x, y)) {
+                        matchedPixels++;
+                    } else {
+                        strayPixels++;
+                    }
+                }
+            }
+        }
+
+        // 1. Minimum Çizim Kontrolü (nokta koyup tamamlama engeli)
+        if (totalUserPixels < Math.max(30, totalTargetPixels * 0.12)) {
+            return {
+                passed: false,
+                title: 'Tekrar Deneyelim! ✏️',
+                message: 'Harfi henüz tamamlamadın. Çizgilerin üzerinden baştan sona geçelim.'
+            };
+        }
+
+        const strayRatio = strayPixels / totalUserPixels;
+        const coverageRatio = matchedPixels / Math.max(1, totalTargetPixels);
+
+        // 2. Taşma veya Yanlış Yere Çizim Kontrolü (Karalama engeli)
+        if (strayRatio > 0.42) {
+            return {
+                passed: false,
+                title: 'Tekrar Deneyelim! 💪',
+                message: 'Harfin dışına taştın veya çizgileri kaçırdın. Kılavuz çizgileri takip ederek üzerinden geçelim.'
+            };
+        }
+
+        // 3. Harfin Temel Kısımlarını Çizmeme Kontrolü
+        if (coverageRatio < 0.22) {
+            return {
+                passed: false,
+                title: 'Tekrar Deneyelim! ✍️',
+                message: 'Harfin bazı kısımları eksik kaldı. Acele etmeden çizgileri tamamlayalım.'
+            };
+        }
+
+        return {
+            passed: true,
+            title: 'Tebrikler, Harika Yazdın! 🌟',
+            message: 'Harfin çizgilerini çok güzel takip ettin.'
+        };
+    };
+
+    // Harfi Tamamlama & Doğruluk Kontrolü
+    const handleCompleteLetter = () => {
+        const evaluation = evaluateDrawingAccuracy();
+
+        if (evaluation.passed) {
+            setValidationFeedback({ status: 'success', title: evaluation.title, message: evaluation.message });
+            setScoreCelebration(true);
+            playCelebrationSound();
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance('Tebrikler, harika yazdın!');
+                utter.lang = 'tr-TR';
+                utter.rate = 0.9;
+                window.speechSynthesis.speak(utter);
+            }
+
+            setTimeout(() => {
+                setScoreCelebration(false);
+                setValidationFeedback(null);
+            }, 3200);
+        } else {
+            setValidationFeedback({ status: 'retry', title: evaluation.title, message: evaluation.message });
+            playRetrySound();
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance('Tekrar deneyelim, çizgilerin üzerinden geçelim.');
+                utter.lang = 'tr-TR';
+                utter.rate = 0.9;
+                window.speechSynthesis.speak(utter);
+            }
+        }
     };
 
     if (!isOpen) return null;
@@ -780,23 +928,13 @@ export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCan
                                     <button
                                         type="button"
                                         onClick={handleCompleteLetter}
-                                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer animate-pulse"
-                                        title="Harika Yazdım!"
+                                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer animate-pulse"
+                                        title="Çizimimi Kontrol Et"
                                     >
                                         <Award className="w-3.5 h-3.5" />
                                         <span>Tamamladım!</span>
                                     </button>
                                 )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleExportToWhiteboard}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
-                                    title="Çalışmayı Arkadaki Akıllı Tahtaya Aktar"
-                                >
-                                    <Share2 className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Tahtaya Gönder</span>
-                                </button>
                             </div>
                         </div>
 
@@ -898,6 +1036,55 @@ export default function LetterWritingScreen({ isOpen = true, onClose, onAddToCan
                                 onTouchEnd={handlePointerUp}
                                 className="absolute inset-0 w-full h-full cursor-crosshair z-10 touch-none"
                             />
+
+                            {/* Yanlış / Tekrar Dene Geri Bildirim Modalı */}
+                            <AnimatePresence>
+                                {validationFeedback && validationFeedback.status === 'retry' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.85, y: 15 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.85, y: 15 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute z-50 flex flex-col items-center justify-center p-6 rounded-3xl bg-slate-900/95 border-2 border-amber-500/60 shadow-2xl backdrop-blur-xl text-center max-w-sm mx-4 space-y-3.5"
+                                    >
+                                        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-3xl shadow-inner animate-pulse">
+                                            🔄
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h3 className="text-xl font-bold text-amber-300">
+                                                {validationFeedback.title}
+                                            </h3>
+                                            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                                                {validationFeedback.message}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1 w-full">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    clearCanvas();
+                                                    setValidationFeedback(null);
+                                                }}
+                                                className="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                                            >
+                                                <RotateCcw className="w-3.5 h-3.5" />
+                                                <span>Tekrar Dene</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setValidationFeedback(null);
+                                                    startDemonstration();
+                                                }}
+                                                className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                                            >
+                                                <Play className="w-3.5 h-3.5" />
+                                                <span>Nasıl Yazılır?</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Tebrik Konfeti & Yıldız Animasyonu */}
                             <AnimatePresence>

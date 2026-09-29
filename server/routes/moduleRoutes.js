@@ -36,23 +36,70 @@ router.get('/', async (req, res) => {
     try {
         const modules = await Module.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
 
-        // If authorization header is provided, inspect teacher classes
+        let userRole = null;
+        let studentClass = null;
         let teacherClasses = [];
         let authHeader = req.headers.authorization;
+
         if (authHeader && authHeader.startsWith('Bearer ')) {
             try {
                 const jwt = require('jsonwebtoken');
                 const token = authHeader.split(' ')[1];
                 const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_oxonom_edu_secure_jwt_token_2025');
                 if (decoded && decoded.id) {
-                    teacherClasses = await Class.find({ teacherId: decoded.id, isActive: true })
-                        .select('_id name grade section schoolName enabledModules');
+                    const User = require('../models/User');
+                    const Student = require('../models/Student');
+                    const user = await User.findById(decoded.id).select('role');
+                    if (user) {
+                        userRole = user.role;
+                        if (user.role === 'teacher') {
+                            teacherClasses = await Class.find({ teacherId: decoded.id, isActive: true })
+                                .select('_id name grade section schoolName enabledModules');
+                        } else if (user.role === 'student') {
+                            const student = await Student.findOne({ userId: decoded.id, status: 'active' }).populate('classId');
+                            if (student && student.classId) {
+                                studentClass = student.classId;
+                            }
+                        }
+                    }
                 }
             } catch (e) {
                 // Ignore token errors for public listing
             }
         }
 
+        // If user is a student: strictly return ONLY modules enabled for their specific class!
+        if (userRole === 'student') {
+            if (!studentClass) {
+                return res.json({
+                    modules: [],
+                    role: 'student',
+                    studentClass: null,
+                    message: 'Henüz aktif bir sınıfa atanmadınız.'
+                });
+            }
+
+            const allowedKeys = Array.isArray(studentClass.enabledModules) ? studentClass.enabledModules : [];
+            const filtered = modules.filter(m => {
+                const isKeyEnabled = allowedKeys.includes(m.key);
+                const isGradeMatch = !Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(studentClass.grade);
+                return isKeyEnabled && isGradeMatch;
+            });
+
+            return res.json({
+                modules: filtered,
+                role: 'student',
+                studentClass: {
+                    _id: studentClass._id,
+                    name: studentClass.name,
+                    grade: studentClass.grade,
+                    section: studentClass.section,
+                    schoolName: studentClass.schoolName
+                }
+            });
+        }
+
+        // If teacher or admin/public:
         const enriched = modules.map(m => {
             const mObj = m.toObject();
             if (teacherClasses.length > 0) {
@@ -73,6 +120,7 @@ router.get('/', async (req, res) => {
 
         res.json({
             modules: enriched,
+            role: userRole || 'guest',
             teacherClasses: teacherClasses.map(c => ({
                 _id: c._id,
                 name: c.name,

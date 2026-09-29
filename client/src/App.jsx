@@ -44,6 +44,8 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyRegistrationOTP from "./pages/VerifyRegistrationOTP";
 import ScrollToTop from "./components/ScrollToTop";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ModuleDockProvider } from "./context/ModuleDockContext";
+import MinimizedModulesDock from "./components/MinimizedModulesDock";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
@@ -413,10 +415,13 @@ const AppLayout = () => {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <ScrollToTop />
-        <AppLayout />
-      </Router>
+      <ModuleDockProvider>
+        <Router>
+          <ScrollToTop />
+          <AppLayout />
+          <MinimizedModulesDock />
+        </Router>
+      </ModuleDockProvider>
     </ThemeProvider>
   );
 }

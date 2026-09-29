@@ -108,8 +108,8 @@ const ModulesPage = () => {
   const [userRole, setUserRole] = useState(user.role || 'teacher');
   const [studentClassInfo, setStudentClassInfo] = useState(null);
 
-  // Standalone Running Module (Tahtaya ihtiyaç duymadan doğrudan çalıştırma)
-  const [activeRunningModule, setActiveRunningModule] = useState(null); // 'harf-cizgi-atolyesi' | '1-dk-okuma'
+  // Standalone Running Modules (Birden fazla modülü eş zamanlı çalıştırma ve simge durumuna alma)
+  const [runningModules, setRunningModules] = useState({}); // { [modKey]: boolean }
 
   // --- KATEGORİZASYON VE FİLTRE STATE'LERİ ---
   // 1. Sınıf Filtresi (Öğretmenler için: 'all' veya classId)
@@ -214,7 +214,7 @@ const ModulesPage = () => {
 
   const handleLaunchModule = (mod) => {
     if (mod.key === 'harf-cizgi-atolyesi' || mod.key === '1-dk-okuma') {
-      setActiveRunningModule(mod.key);
+      setRunningModules(prev => ({ ...prev, [mod.key]: true }));
     } else {
       // Diğer modüller için zengin tanıtım modalını aç
       handleOpenDetails(mod);
@@ -1137,19 +1137,19 @@ const ModulesPage = () => {
         </AnimatePresence>
 
         {/* ========================================================================= */}
-        {/* G. BAĞIMSIZ MODÜL ÇALIŞTIRICILARI (HARF ÇİZGİ & 1 DK OKUMA)               */}
+        {/* G. BAĞIMSIZ MODÜL ÇALIŞTIRICILARI (BİRDEN FAZLA MODÜL EŞ ZAMANLI ÇALIŞABİLİR) */}
         {/* ========================================================================= */}
-        {activeRunningModule === 'harf-cizgi-atolyesi' && (
+        {runningModules['harf-cizgi-atolyesi'] && (
           <LetterWritingScreen
             isOpen={true}
-            onClose={() => setActiveRunningModule(null)}
+            onClose={() => setRunningModules(prev => ({ ...prev, 'harf-cizgi-atolyesi': false }))}
           />
         )}
 
-        {activeRunningModule === '1-dk-okuma' && (
+        {runningModules['1-dk-okuma'] && (
           <ReadingScreen
             isOpen={true}
-            onClose={() => setActiveRunningModule(null)}
+            onClose={() => setRunningModules(prev => ({ ...prev, '1-dk-okuma': false }))}
           />
         )}
       </div>

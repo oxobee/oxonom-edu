@@ -18,7 +18,72 @@ router.post('/', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Başlık, içerik ve sınıf seçimi zorunludur.' });
         }
 
-        // Verify class ownership
+        const cleanPriority = ['normal', 'important', 'urgent'].includes(priority) ? priority : 'normal';
+
+        // BÜTÜN SINIFLAR SEÇENEĞİ (Toplu Bildirim)
+        if (classId === 'all') {
+            const teacherClasses = await Class.find(req.user.role === 'admin' ? {} : { teacherId });
+            if (!teacherClasses || teacherClasses.length === 0) {
+                return res.status(400).json({ message: 'Henüz tanımlanmış bir sınıfınız bulunmamaktadır.' });
+            }
+
+            const broadcastGroupId = new mongoose.Types.ObjectId();
+            const savedAnnouncements = [];
+            const recipientsToInsert = [];
+            const notificationsToInsert = [];
+
+            for (const cls of teacherClasses) {
+                const announcement = new Announcement({
+                    teacherId,
+                    classId: cls._id,
+                    title: title.trim(),
+                    content: content.trim(),
+                    priority: cleanPriority,
+                    targetType: 'class',
+                    targetStudentIds: [],
+                    isAllClasses: true,
+                    broadcastGroupId
+                });
+
+                await announcement.save();
+                savedAnnouncements.push(announcement);
+
+                // Bu sınıftaki aktif öğrencilere toplu bildirim hazırla
+                const classStudents = await Student.find({ classId: cls._id, isFrozen: { $ne: true } }).select('_id userId');
+                for (const s of classStudents) {
+                    recipientsToInsert.push({
+                        announcementId: announcement._id,
+                        studentId: s._id,
+                        userId: s.userId || null,
+                        isRead: false
+                    });
+
+                    if (s.userId) {
+                        notificationsToInsert.push({
+                            userId: s.userId,
+                            type: 'announcement',
+                            title: cleanPriority === 'urgent' 
+                                ? `🚨 TÜM SINIFLARA ACİL DUYURU: ${announcement.title}` 
+                                : `📢 Yeni Duyuru: ${announcement.title}`,
+                            message: announcement.content.substring(0, 120),
+                            referenceType: 'announcement',
+                            referenceId: announcement._id
+                        });
+                    }
+                }
+            }
+
+            if (recipientsToInsert.length > 0) {
+                await AnnouncementRecipient.insertMany(recipientsToInsert, { ordered: false }).catch(() => {});
+            }
+            if (notificationsToInsert.length > 0) {
+                await Notification.insertMany(notificationsToInsert, { ordered: false }).catch(() => {});
+            }
+
+            return res.status(201).json(savedAnnouncements[0]);
+        }
+
+        // Tekil Sınıf Doğrulaması
         const classDoc = await Class.findOne({
             _id: classId,
             ...(req.user.role === 'admin' ? {} : { teacherId })
@@ -27,7 +92,6 @@ router.post('/', verifyToken, async (req, res) => {
             return res.status(403).json({ message: 'Bu sınıf için duyuru oluşturma yetkiniz yok.' });
         }
 
-        const cleanPriority = ['normal', 'important', 'urgent'].includes(priority) ? priority : 'normal';
         const cleanTargetType = targetType === 'students' ? 'students' : 'class';
 
         let studentIdsToTarget = [];
@@ -90,22 +154,33 @@ router.post('/', verifyToken, async (req, res) => {
     }
 });
 
-// 2. Get Announcements for a class (Teacher)
+// 2. Get Announcements for a class (or all classes for Teacher)
 router.get('/class/:classId', verifyToken, async (req, res) => {
     try {
         const { classId } = req.params;
         const teacherId = req.user.id;
 
-        const classDoc = await Class.findOne({
-            _id: classId,
-            ...(req.user.role === 'admin' ? {} : { teacherId })
-        });
-        if (!classDoc) {
-            return res.status(403).json({ message: 'Yetkisiz erişim' });
+        let query = {};
+        let teacherClasses = [];
+
+        if (classId === 'all') {
+            teacherClasses = await Class.find(req.user.role === 'admin' ? {} : { teacherId });
+            const classIds = teacherClasses.map(c => c._id);
+            query = { classId: { $in: classIds } };
+        } else {
+            const classDoc = await Class.findOne({
+                _id: classId,
+                ...(req.user.role === 'admin' ? {} : { teacherId })
+            });
+            if (!classDoc) {
+                return res.status(403).json({ message: 'Yetkisiz erişim' });
+            }
+            query = { classId };
         }
 
-        const announcements = await Announcement.find({ classId })
+        const announcements = await Announcement.find(query)
             .populate('teacherId', 'username email')
+            .populate('classId', 'name grade section')
             .populate('targetStudentIds', 'firstName lastName studentNumber')
             .sort({ createdAt: -1 });
 
@@ -126,6 +201,38 @@ router.get('/class/:classId', verifyToken, async (req, res) => {
         recipientStats.forEach(r => {
             statsMap[r._id.toString()] = { total: r.total, readCount: r.readCount };
         });
+
+        // Group broadcast announcements if classId === 'all'
+        if (classId === 'all') {
+            const groupedResult = [];
+            const seenBroadcastGroups = new Set();
+
+            for (const a of announcements) {
+                const doc = a.toObject();
+                doc.stats = statsMap[a._id.toString()] || { total: 0, readCount: 0 };
+
+                if (doc.broadcastGroupId) {
+                    const bgKey = doc.broadcastGroupId.toString();
+                    if (seenBroadcastGroups.has(bgKey)) {
+                        // Already included master item, accumulate stats
+                        const existing = groupedResult.find(item => item.broadcastGroupId?.toString() === bgKey);
+                        if (existing) {
+                            existing.stats.total += doc.stats.total;
+                            existing.stats.readCount += doc.stats.readCount;
+                        }
+                        continue;
+                    }
+                    seenBroadcastGroups.add(bgKey);
+                    doc.isAllClasses = true;
+                    doc.classCount = teacherClasses.length;
+                    groupedResult.push(doc);
+                } else {
+                    groupedResult.push(doc);
+                }
+            }
+
+            return res.json(groupedResult);
+        }
 
         const result = announcements.map(a => {
             const doc = a.toObject();
@@ -225,9 +332,17 @@ router.delete('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({ message: 'Duyuru bulunamadı veya yetkisiz' });
         }
 
-        await AnnouncementRecipient.deleteMany({ announcementId: announcement._id });
-        await Notification.deleteMany({ referenceId: announcement._id, referenceType: 'announcement' });
-        await Announcement.findByIdAndDelete(announcement._id);
+        if (announcement.broadcastGroupId) {
+            const groupAnnouncements = await Announcement.find({ broadcastGroupId: announcement.broadcastGroupId });
+            const groupIds = groupAnnouncements.map(a => a._id);
+            await AnnouncementRecipient.deleteMany({ announcementId: { $in: groupIds } });
+            await Notification.deleteMany({ referenceId: { $in: groupIds }, referenceType: 'announcement' });
+            await Announcement.deleteMany({ broadcastGroupId: announcement.broadcastGroupId });
+        } else {
+            await AnnouncementRecipient.deleteMany({ announcementId: announcement._id });
+            await Notification.deleteMany({ referenceId: announcement._id, referenceType: 'announcement' });
+            await Announcement.findByIdAndDelete(announcement._id);
+        }
 
         res.json({ success: true, message: 'Duyuru silindi' });
     } catch (err) {

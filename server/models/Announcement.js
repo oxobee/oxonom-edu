@@ -17,6 +17,8 @@ const announcementSchema = new mongoose.Schema({
         default: 'class' 
     },
     targetStudentIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
+    broadcastGroupId: { type: mongoose.Schema.Types.ObjectId, index: true },
+    isAllClasses: { type: Boolean, default: false, index: true },
     createdAt: { type: Date, default: Date.now, index: true }
 });
 

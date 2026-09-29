@@ -4,9 +4,10 @@ import {
     Play, Pause, RotateCcw,
     X, Maximize2, Minimize2, GripHorizontal,
     Type, PenTool, Check, Palette, Eraser, Trash2, ArrowRight,
-    HelpCircle, Eye, EyeOff, Layers, Download
+    HelpCircle, Eye, EyeOff, Layers, Download, Minus
 } from 'lucide-react';
 import { getStrokesForChar, transformStrokePoint } from '../utils/letterStrokes';
+import { useModuleDock } from '../context/ModuleDockContext';
 
 // MEB 1. Sınıf Ses Grupları ve Görsel Kartları
 const MEB_LETTER_GROUPS = [
@@ -252,6 +253,42 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         };
     }, []);
 
+    // Modül Dock Entegrasyonu (Simge Durumu ve Çoklu Modül Yönetimi)
+    const { registerModule, unregisterModule } = useModuleDock();
+
+    useEffect(() => {
+        if (!isOpen) {
+            unregisterModule('harf-cizgi-atolyesi');
+            return;
+        }
+
+        const badgeText = category === 'letters'
+            ? `${currentCharKey} Harfi • ${isUpperCase ? 'Büyük' : 'Küçük'}`
+            : category === 'numbers'
+            ? `${currentCharKey} Rakamı`
+            : `${selectedLine.title}`;
+
+        registerModule({
+            id: 'harf-cizgi-atolyesi',
+            title: 'Harf & Çizgi Atölyesi',
+            shortTitle: 'Harf Atölyesi',
+            icon: '✏️',
+            gradient: 'bg-gradient-to-tr from-indigo-600 to-blue-500 text-white',
+            badge: badgeText,
+            isMinimized: windowState === 'minimized',
+            onRestore: () => setWindowState('normal'),
+            onClose: () => {
+                if (onClose) onClose();
+            }
+        });
+    }, [isOpen, windowState, category, currentCharKey, isUpperCase, selectedLine, onClose, registerModule, unregisterModule]);
+
+    useEffect(() => {
+        return () => {
+            unregisterModule('harf-cizgi-atolyesi');
+        };
+    }, [unregisterModule]);
+
     const clearCanvas = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -491,6 +528,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
+                style={{ display: windowState === 'minimized' ? 'none' : 'flex' }}
                 className={`fixed z-50 flex flex-col shadow-2xl overflow-hidden bg-slate-950 text-slate-100 ${
                     windowState === 'maximized'
                         ? 'inset-0 sm:inset-4 md:inset-6 sm:rounded-2xl sm:border sm:border-slate-700/80'
@@ -552,20 +590,30 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                         </button>
                     </div>
 
-                    {/* Sağ Kontroller: Büyüt / Kapat */}
+                    {/* Sağ Kontroller: Küçült / Büyüt / Kapat */}
                     <div className="flex items-center gap-1 shrink-0">
                         <button
                             type="button"
+                            onClick={() => setWindowState('minimized')}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+                            title="Simge Durumuna Küçült"
+                        >
+                            <Minus className="w-4 h-4" />
+                        </button>
+
+                        <button
+                            type="button"
                             onClick={() => setWindowState(prev => prev === 'maximized' ? 'normal' : 'maximized')}
-                            className="hidden sm:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                            title={windowState === 'maximized' ? 'Küçült' : 'Tam Ekran'}
+                            className="hidden sm:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+                            title={windowState === 'maximized' ? 'Normal Boyut' : 'Tam Ekran'}
                         >
                             {windowState === 'maximized' ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                         </button>
+
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-rose-400 bg-slate-800/60 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                            className="p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-rose-400 bg-slate-800/60 hover:bg-rose-500/20 transition-colors cursor-pointer active:scale-95"
                             title="Kapat"
                         >
                             <X className="w-4 h-4" />

@@ -8,6 +8,7 @@ import {
     Flag, RefreshCw, Eye, Flame, AlertCircle
 } from 'lucide-react';
 import AutoScrollText from './ui/AutoScrollText';
+import { useModuleDock } from '../context/ModuleDockContext';
 
 // İlkokul 1-4. sınıf seviyesine uygun zengin pedagojik okuma metinleri
 const SAMPLE_TEXTS = [
@@ -212,6 +213,42 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
         return () => clearInterval(timerRef.current);
     }, [isRunning, timeLeft, durationSeconds]);
 
+    // Modül Dock Entegrasyonu (Simge Durumu ve Çoklu Modül Yönetimi)
+    const { registerModule, unregisterModule } = useModuleDock();
+
+    useEffect(() => {
+        if (!isOpen) {
+            unregisterModule('1-dk-okuma');
+            return;
+        }
+
+        const badgeText = isRunning
+            ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')} • Devam`
+            : isFinished
+            ? 'Okuma Bitti'
+            : `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`;
+
+        registerModule({
+            id: '1-dk-okuma',
+            title: 'Hızlı Okuma İstasyonu',
+            shortTitle: '1 Dk Okuma',
+            icon: '⏱️',
+            gradient: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white',
+            badge: badgeText,
+            isMinimized: windowState === 'minimized',
+            onRestore: () => setWindowState('normal'),
+            onClose: () => {
+                if (onClose) onClose();
+            }
+        });
+    }, [isOpen, windowState, timeLeft, isRunning, isFinished, onClose, registerModule, unregisterModule]);
+
+    useEffect(() => {
+        return () => {
+            unregisterModule('1-dk-okuma');
+        };
+    }, [unregisterModule]);
+
     // Başlat / Duraklat
     const handleStartPause = () => {
         if (isFinished || timeLeft === 0) {
@@ -295,38 +332,14 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
 
     if (!isOpen) return null;
 
-    // --- KÜÇÜLTÜLMÜŞ (SİMGE DURUMU) KAPSÜL ---
-    if (windowState === 'minimized') {
-        return (
-            <motion.div
-                drag
-                dragMomentum={false}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-2xl border-2 border-amber-300 cursor-pointer select-none active:scale-95 transition"
-                onClick={() => setWindowState('normal')}
-                title="Hızlı Okuma İstasyonunu Aç"
-            >
-                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold">
-                    📖
-                </div>
-                <div className="text-left font-sans">
-                    <div className="text-xs font-bold leading-tight">Hızlı Okuma İstasyonu</div>
-                    <div className="text-[11px] text-amber-100 font-mono font-bold">
-                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                        {isRunning && ' • Devam Ediyor'}
-                    </div>
-                </div>
-                <Maximize2 className="w-4 h-4 ml-1 opacity-90" />
-            </motion.div>
-        );
-    }
-
     const isMax = windowState === 'maximized';
+    const isMinimized = windowState === 'minimized';
 
     return (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-0 sm:p-3 md:p-5 overflow-hidden">
+        <div 
+            style={{ display: isMinimized ? 'none' : 'flex' }}
+            className="fixed inset-0 z-50 pointer-events-none items-center justify-center p-0 sm:p-3 md:p-5 overflow-hidden"
+        >
             {/* Arka Plan Karartması */}
             <div 
                 className="absolute inset-0 bg-black/60 backdrop-blur-xs pointer-events-auto transition-opacity"
@@ -370,6 +383,7 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                             {/* Sekme Değiştirici */}
                             <div className="flex items-center gap-1 mt-0.5">
                                 <button
+                                    type="button"
                                     onClick={() => setActiveTab('reading')}
                                     className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                                         activeTab === 'reading'
@@ -380,6 +394,7 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                                     📖 Süreli Okuma
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setActiveTab('letters')}
                                     className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                                         activeTab === 'letters'
@@ -396,25 +411,28 @@ export default function ReadingScreen({ isOpen = true, onClose }) {
                     {/* Sağ: Pencere Boyutu & Kapat Butonu */}
                     <div className="flex items-center gap-1 sm:gap-1.5">
                         <button
+                            type="button"
                             onClick={() => setWindowState('minimized')}
-                            className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
                             title="Simge Durumuna Küçült"
                         >
-                            <Minimize2 className="w-3.5 h-3.5" />
+                            <Minus className="w-4 h-4" />
                         </button>
 
                         <button
+                            type="button"
                             onClick={() => setWindowState(prev => prev === 'maximized' ? 'normal' : 'maximized')}
-                            className="hidden sm:flex w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 items-center justify-center transition cursor-pointer"
+                            className="hidden sm:flex w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white items-center justify-center transition cursor-pointer active:scale-95"
                             title={isMax ? "Normal Boyut" : "Tam Ekran"}
                         >
-                            <Maximize2 className="w-3.5 h-3.5" />
+                            {isMax ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                         </button>
 
                         {onClose && (
                             <button
+                                type="button"
                                 onClick={onClose}
-                                className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition cursor-pointer ml-1"
+                                className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition cursor-pointer ml-1 active:scale-95"
                                 title="Kapat"
                             >
                                 <X className="w-4 h-4" />

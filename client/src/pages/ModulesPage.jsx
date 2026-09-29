@@ -151,15 +151,25 @@ const ModulesPage = () => {
     }
   };
 
+  const getGradeAppropriateClassIds = (moduleItem) => {
+    const cleanTargets = (moduleItem?.targetGrades || []).map(g => String(g).replace(/[^0-9]/g, '')).filter(Boolean);
+    if (cleanTargets.length === 0) return teacherClasses.map(c => c._id);
+    return teacherClasses
+      .filter(c => cleanTargets.includes(String(c.grade).replace(/[^0-9]/g, '')))
+      .map(c => c._id);
+  };
+
   const handleOpenDetails = (moduleItem) => {
     setSelectedModule(moduleItem);
-    const initialSelected = (moduleItem.assignedClasses || []).map(c => c._id);
+    const assigned = (moduleItem.assignedClasses || []).map(c => c._id);
+    const initialSelected = assigned.length > 0 ? assigned : getGradeAppropriateClassIds(moduleItem);
     setSelectedClassIds(initialSelected);
   };
 
   const handleOpenAssignModal = (moduleItem) => {
     setAssigningModule(moduleItem);
-    const initialSelected = (moduleItem.assignedClasses || []).map(c => c._id);
+    const assigned = (moduleItem.assignedClasses || []).map(c => c._id);
+    const initialSelected = assigned.length > 0 ? assigned : getGradeAppropriateClassIds(moduleItem);
     setSelectedClassIds(initialSelected);
     setAssignmentFeedback(null);
   };
@@ -1044,9 +1054,21 @@ const ModulesPage = () => {
 
                 {/* Body */}
                 <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5 pb-1 border-b border-border/40">
                     <span className="text-muted-foreground font-medium">Sınıflarınız:</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const appIds = getGradeAppropriateClassIds(assigningModule);
+                          setSelectedClassIds(appIds);
+                        }}
+                        className="text-cyan-500 hover:text-cyan-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                        title="Bu modüle uygun sınıfları otomatik seç"
+                      >
+                        🎯 Önerilen Kademeleri Seç
+                      </button>
+                      <span className="text-muted-foreground/60">•</span>
                       <button
                         type="button"
                         onClick={handleSelectAllClasses}
@@ -1054,7 +1076,7 @@ const ModulesPage = () => {
                       >
                         Tümünü Seç
                       </button>
-                      <span>•</span>
+                      <span className="text-muted-foreground/60">•</span>
                       <button
                         type="button"
                         onClick={handleClearAllClasses}
@@ -1068,6 +1090,9 @@ const ModulesPage = () => {
                   <div className="space-y-2">
                     {teacherClasses.map((cls) => {
                       const isChecked = selectedClassIds.includes(cls._id);
+                      const cleanTargets = (assigningModule?.targetGrades || []).map(g => String(g).replace(/[^0-9]/g, '')).filter(Boolean);
+                      const isRecommended = cleanTargets.length === 0 || cleanTargets.includes(String(cls.grade).replace(/[^0-9]/g, ''));
+
                       return (
                         <label
                           key={cls._id}
@@ -1085,7 +1110,14 @@ const ModulesPage = () => {
                               className="w-4 h-4 rounded border-input text-primary focus:ring-primary cursor-pointer"
                             />
                             <div>
-                              <p className="font-bold text-foreground">{cls.name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-bold text-foreground">{cls.name}</p>
+                                {isRecommended && (
+                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold">
+                                    ⭐ Önerilen
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[11px] text-muted-foreground">{cls.schoolName}</p>
                             </div>
                           </div>

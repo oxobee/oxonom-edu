@@ -25,6 +25,7 @@ const Board = require('./models/Board');
 const SavedBoard = require('./models/SavedBoard');
 const User = require('./models/User');
 const Class = require('./models/Class');
+const Module = require('./models/Module');
 const Student = require('./models/Student');
 const Guardian = require('./models/Guardian');
 const Notification = require('./models/Notification');
@@ -824,6 +825,18 @@ app.post('/api/classes', verifyToken, async (req, res) => {
       matchingCode = Class.generateMatchingCode(cleanGrade, cleanSection);
     }
 
+    // Sınıf kademesine uygun modülleri otomatik belirle
+    let autoModules = [];
+    try {
+      const activeModules = await Module.find({ isActive: true });
+      const numericGrade = cleanGrade.replace(/[^0-9]/g, '');
+      autoModules = activeModules.filter(m => {
+        if (!m.targetGrades || m.targetGrades.length === 0) return true;
+        const cleanTargets = m.targetGrades.map(g => String(g).replace(/[^0-9]/g, '')).filter(Boolean);
+        return cleanTargets.includes(numericGrade);
+      }).map(m => m.key);
+    } catch (_) {}
+
     const newClass = new Class({
       teacherId,
       schoolName: cleanSchool,
@@ -835,6 +848,7 @@ app.post('/api/classes', verifyToken, async (req, res) => {
       description: description ? String(description).trim() : '',
       color: color || '#6366f1',
       matchingCode,
+      enabledModules: autoModules,
       isActive: true
     });
 

@@ -96,6 +96,22 @@ router.get('/', async (req, res) => {
         }
 
         // If teacher or admin/public:
+        // Eğer öğretmenin sınıflarında henüz modül seçilmemişse, sınıf kademesine uygun modülleri otomatik ata
+        for (const cls of teacherClasses) {
+            if (!cls.enabledModules || cls.enabledModules.length === 0) {
+                const numGrade = String(cls.grade).replace(/[^0-9]/g, '');
+                const autoKeys = modules.filter(m => {
+                    if (!m.targetGrades || m.targetGrades.length === 0) return true;
+                    const cleanTargets = m.targetGrades.map(g => String(g).replace(/[^0-9]/g, '')).filter(Boolean);
+                    return cleanTargets.includes(numGrade);
+                }).map(m => m.key);
+                if (autoKeys.length > 0) {
+                    cls.enabledModules = autoKeys;
+                    await Class.findByIdAndUpdate(cls._id, { $addToSet: { enabledModules: { $each: autoKeys } } });
+                }
+            }
+        }
+
         const enriched = modules.map(m => {
             const mObj = m.toObject();
             if (teacherClasses.length > 0) {
@@ -253,6 +269,18 @@ router.post('/admin', verifyToken, verifyAdmin, async (req, res) => {
         });
 
         await newModule.save();
+
+        // Hedef kademeye uygun sınıflara modülü otomatik olarak ekle
+        if (Array.isArray(newModule.targetGrades) && newModule.targetGrades.length > 0) {
+            const cleanGrades = newModule.targetGrades.map(g => String(g).replace(/[^0-9]/g, '')).filter(Boolean);
+            if (cleanGrades.length > 0) {
+                await Class.updateMany(
+                    { grade: { $in: cleanGrades } },
+                    { $addToSet: { enabledModules: cleanKey } }
+                );
+            }
+        }
+
         res.status(201).json(newModule);
     } catch (err) {
         console.error('Error creating module:', err);

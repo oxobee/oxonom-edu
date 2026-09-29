@@ -27,6 +27,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import ModuleMediaSlider from '../components/ModuleMediaSlider';
 import LetterWritingScreen from '../components/LetterWritingScreen';
 import ReadingScreen from '../components/ReadingScreen';
+import RhythmicCountingScreen from '../components/RhythmicCountingScreen';
 import {
   PageHeader,
   Card,
@@ -213,7 +214,7 @@ const ModulesPage = () => {
   };
 
   const handleLaunchModule = (mod) => {
-    if (mod.key === 'harf-cizgi-atolyesi' || mod.key === '1-dk-okuma') {
+    if (mod.key === 'harf-cizgi-atolyesi' || mod.key === '1-dk-okuma' || mod.key === 'ritmik-sayma-atolyesi') {
       setRunningModules(prev => ({ ...prev, [mod.key]: true }));
     } else {
       // Diğer modüller için zengin tanıtım modalını aç
@@ -1150,6 +1151,13 @@ const ModulesPage = () => {
           <ReadingScreen
             isOpen={true}
             onClose={() => setRunningModules(prev => ({ ...prev, '1-dk-okuma': false }))}
+          />
+        )}
+
+        {runningModules['ritmik-sayma-atolyesi'] && (
+          <RhythmicCountingScreen
+            isOpen={true}
+            onClose={() => setRunningModules(prev => ({ ...prev, 'ritmik-sayma-atolyesi': false }))}
           />
         )}
       </div>

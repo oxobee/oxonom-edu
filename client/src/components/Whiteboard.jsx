@@ -26,6 +26,7 @@ import ImageCropModal from './ImageCropModal';
 import LayersPanel from './LayersPanel';
 import ReadingScreen from './ReadingScreen';
 import LetterWritingScreen from './LetterWritingScreen';
+import RhythmicCountingScreen from './RhythmicCountingScreen';
 import EmojiPickerModal, { createEmojiImage } from './EmojiPickerModal';
 import { Focus, Smile, Blocks } from 'lucide-react';
 
@@ -155,6 +156,7 @@ const Whiteboard = () => {
     const [showLayersPanel, setShowLayersPanel] = useState(false); // Layers panel visibility
     const [showReadingScreen, setShowReadingScreen] = useState(false); // İlkokul 1 Dk Okuma Ekranı
     const [showLetterWritingScreen, setShowLetterWritingScreen] = useState(false); // İlkokul Harf Çizgi & Yazılış Yönü Atölyesi
+    const [showRhythmicScreen, setShowRhythmicScreen] = useState(false); // Ritmik Sayma & Sayı Doğrusu Atölyesi
     const [showModulesDropdown, setShowModulesDropdown] = useState(false); // Ders & Etkinlik Modülleri Açılır Menüsü
     const modulesDropdownRef = useRef(null);
     const [showEmojiModal, setShowEmojiModal] = useState(false); // Emoji & İşaret Kütüphanesi Modalı
@@ -5191,18 +5193,46 @@ const Whiteboard = () => {
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <div className="font-semibold text-xs tracking-tight text-foreground flex items-center justify-between">
-                                                    <span>1 Dk Okuma</span>
-                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 font-medium">Temel</span>
+                                                     <span>1 Dk Okuma</span>
+                                                     <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 font-medium">Temel</span>
                                                 </div>
                                                 <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                                                    Hızlı ve akıcı okuma kronometresi
+                                                     Hızlı ve akıcı okuma kronometresi
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )}
+
+                                    {/* Ritmik Sayma & Sayı Doğrusu Atölyesi */}
+                                    {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('ritmik-sayma-atolyesi')) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowRhythmicScreen(true);
+                                                setShowModulesDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer group ${
+                                                showRhythmicScreen 
+                                                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400' 
+                                                    : 'hover:bg-muted/70 text-foreground border border-transparent hover:border-border/60'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
+                                                🔢
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-xs tracking-tight text-foreground flex items-center justify-between">
+                                                    <span>Ritmik Sayma</span>
+                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-medium">1-3. Sınıf</span>
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                                    100'lük tablo & sayı doğrusu
                                                 </div>
                                             </div>
                                         </button>
                                     )}
 
                                     {/* Eğer sınıfa hiçbir modül atanmamışsa */}
-                                    {boardMeta?.classId && !(boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('1-dk-okuma') && (
+                                    {boardMeta?.classId && !(boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('1-dk-okuma') && !(boardMeta.classId.enabledModules || []).includes('ritmik-sayma-atolyesi') && (
                                         <div className="p-3 text-center text-xs text-muted-foreground">
                                             Bu sınıf için henüz etkinleştirilmiş modül bulunmuyor.
                                         </div>
@@ -7028,6 +7058,44 @@ const Whiteboard = () => {
                 <LetterWritingScreen
                     isOpen={showLetterWritingScreen}
                     onClose={() => setShowLetterWritingScreen(false)}
+                />
+            )}
+
+            {/* Ritmik Sayma & Sayı Doğrusu Atölyesi Modalı */}
+            {showRhythmicScreen && (
+                <RhythmicCountingScreen
+                    isOpen={showRhythmicScreen}
+                    onClose={() => setShowRhythmicScreen(false)}
+                    onAddToCanvas={({ text, title, fontSize }) => {
+                        const canvas = canvasRef.current;
+                        const cw = canvas ? canvas.width : 1200;
+                        const ch = canvas ? canvas.height : 800;
+                        const x = (-panOffset.x + (cw / (scale || 1)) / 2) - 250;
+                        const y = (-panOffset.y + (ch / (scale || 1)) / 2) - 150;
+
+                        const newElement = {
+                            id: crypto.randomUUID(),
+                            type: 'text',
+                            text: `${title}\n\n${text}`,
+                            x: Math.max(40, x),
+                            y: Math.max(40, y),
+                            fontFamily: 'TTKBDikTemel',
+                            fontSize: fontSize || 24,
+                            color: darkMode ? '#ffffff' : '#1e293b',
+                            stroke: darkMode ? '#ffffff' : '#1e293b',
+                            fontWeight: 'normal',
+                            fontStyle: 'normal',
+                            underline: false,
+                            strikethrough: false,
+                            size: 5
+                        };
+
+                        setElements(prev => [...prev, newElement]);
+                        if (socket) {
+                            socket.emit('draw-element', { roomId, socketId: socket.id, userId: (userRef.current || user)?.id, ...newElement });
+                        }
+                        setTimeout(() => renderCanvas(), 20);
+                    }}
                 />
             )}
 

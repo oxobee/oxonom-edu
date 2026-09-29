@@ -146,9 +146,7 @@ const ModulesPage = () => {
   const displayedModules = modules.filter(m => {
     if (selectedClassFilter === 'all') return true;
     if (!targetClass) return true;
-    const isKeyEnabled = (targetClass.enabledModules || []).includes(m.key);
-    const isGradeMatch = !Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(targetClass.grade);
-    return isKeyEnabled && isGradeMatch;
+    return (targetClass.enabledModules || []).includes(m.key);
   });
 
   return (
@@ -205,8 +203,7 @@ const ModulesPage = () => {
             </button>
             {teacherClasses.map((cls) => {
               const count = modules.filter(m => 
-                (cls.enabledModules || []).includes(m.key) && 
-                (!Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(cls.grade))
+                (cls.enabledModules || []).includes(m.key)
               ).length;
 
               return (

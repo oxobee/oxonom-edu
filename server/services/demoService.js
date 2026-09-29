@@ -51,13 +51,13 @@ const INITIAL_READING_MODULE = {
   videoEmbedCode: '<iframe width="100%" height="100%" src="https://www.youtube.com/embed/jfKfPfyJRdk" title="1 Dk Okuma Modülü Tanıtımı" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>',
   badgeText: 'İlkokul & Temel',
   category: 'Tahta Araçları',
-  targetGrades: ['1', '2'],
+  targetGrades: ['1', '2', '3', '4', '5', '8'],
   features: [
     '60 Saniye Dinamik Geri Sayım',
     'MEB Dik Temel Harf Desteği',
     'Hece ve Kelime Piramitleri',
     'Otomatik Net Kelime Sayacı',
-    'Akıllı Tahta Dokunmatik Uyumlu'
+    'Akıllı Tahta & Mobil Dokunmatik Uyumlu'
   ],
   isActive: true,
   order: 1
@@ -85,13 +85,13 @@ const INITIAL_LETTER_WRITING_MODULE = {
   videoEmbedCode: '',
   badgeText: '1. Sınıf Temel',
   category: 'Okuma & Yazma',
-  targetGrades: ['1'],
+  targetGrades: ['1', '2', '3', '4', '5', '8'],
   features: [
     'MEB Kılavuz Çizgili Satır',
     'Yazılış Yönü Okları (1, 2, 3)',
-    'Fonetik Seslendirme',
+    'Animasyonlu Kalem Rehberi',
     'Dokunmatik Çizim Tuvali',
-    'Tahtaya Tek Tıkla Aktar'
+    'Mobil & Tablet %100 Uyumlu'
   ],
   isActive: true,
   order: 2
@@ -962,16 +962,8 @@ async function seedDemoData() {
     for (const cfg of classConfigs) {
       const classKey = `${cfg.grade}-${cfg.section}`;
       
-      // 1) Match active modules whose targetGrades includes this class's grade (or all grades if empty)
-      const gradeMatchedModules = activeModules
-        .filter(m => !Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(cfg.grade))
-        .map(m => m.key);
-      
-      // 2) Combine with previously configured modules for this class (if still active)
-      const prevMods = (previousClassModuleMap[classKey] || []).filter(k => activeModuleKeys.includes(k));
-      
-      // Distinct set of enabled modules
-      const combinedEnabledModules = Array.from(new Set([...gradeMatchedModules, ...prevMods]));
+      // Her demo sınıfında tüm aktif modüller varsayılan olarak açık olsun (demo kullanıcıların tam erişimi için)
+      const combinedEnabledModules = activeModules.map(m => m.key);
 
       const cls = new Class({
         teacherId,

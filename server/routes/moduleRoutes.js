@@ -80,11 +80,7 @@ router.get('/', async (req, res) => {
             }
 
             const allowedKeys = Array.isArray(studentClass.enabledModules) ? studentClass.enabledModules : [];
-            const filtered = modules.filter(m => {
-                const isKeyEnabled = allowedKeys.includes(m.key);
-                const isGradeMatch = !Array.isArray(m.targetGrades) || m.targetGrades.length === 0 || m.targetGrades.includes(studentClass.grade);
-                return isKeyEnabled && isGradeMatch;
-            });
+            const filtered = modules.filter(m => allowedKeys.includes(m.key));
 
             return res.json({
                 modules: filtered,

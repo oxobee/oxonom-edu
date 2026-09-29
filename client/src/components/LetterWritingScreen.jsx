@@ -194,13 +194,17 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         }, 3200);
     };
 
-    // Çizim Olayları (Mouse & Touch)
+    // Çizim Olayları (Pointer & Touch uyumlu, kaydırmayı engeller)
     const getCoordinates = (e) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        }
         return {
             x: clientX - rect.left,
             y: clientY - rect.top
@@ -209,12 +213,22 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
 
     const handlePointerDown = (e) => {
         if (isDemonstrating) return;
+        if (e.cancelable && e.type.startsWith('touch')) {
+            e.preventDefault();
+        }
+        try {
+            if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId) {
+                e.currentTarget.setPointerCapture(e.pointerId);
+            }
+        } catch (_) {}
+
         const pt = getCoordinates(e);
         isDrawingRef.current = true;
         lastPointRef.current = pt;
         setHasDrawn(true);
 
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, (isEraser ? penSize * 2 : penSize) / 2, 0, Math.PI * 2);
@@ -224,11 +238,15 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
 
     const handlePointerMove = (e) => {
         if (!isDrawingRef.current || isDemonstrating) return;
+        if (e.cancelable && e.type.startsWith('touch')) {
+            e.preventDefault();
+        }
         const pt = getCoordinates(e);
         const last = lastPointRef.current;
         if (!last) return;
 
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.save();
         ctx.strokeStyle = isEraser ? '#090d16' : penColor;
@@ -245,9 +263,14 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
         lastPointRef.current = pt;
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (e) => {
         isDrawingRef.current = false;
         lastPointRef.current = null;
+        try {
+            if (e && e.currentTarget && e.currentTarget.releasePointerCapture && e.pointerId) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+        } catch (_) {}
     };
 
     if (!isOpen) return null;
@@ -259,76 +282,73 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className={`fixed z-50 flex flex-col shadow-2xl rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950/95 backdrop-blur-xl text-slate-100 ${
+                className={`fixed z-50 flex flex-col shadow-2xl overflow-hidden bg-slate-950 text-slate-100 ${
                     windowState === 'maximized'
-                        ? 'inset-3 sm:inset-6'
-                        : 'w-[96vw] max-w-5xl h-[88vh] max-h-[820px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
+                        ? 'inset-0 sm:inset-4 md:inset-6 sm:rounded-2xl sm:border sm:border-slate-700/80'
+                        : 'inset-0 sm:inset-auto sm:w-[96vw] sm:max-w-5xl sm:h-[88vh] sm:max-h-[820px] sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-slate-700/80'
                 }`}
             >
                 {/* 1. ÜST BAŞLIK & TAŞIMA BARI (Header Bar) */}
-                <div className="shrink-0 h-14 bg-slate-900/90 border-b border-slate-800 px-4 flex items-center justify-between select-none">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
-                            <PenTool className="w-4 h-4" />
+                <div className="shrink-0 h-13 sm:h-14 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between select-none gap-2">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20 shrink-0">
+                            <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-sm sm:text-base text-white tracking-tight">
-                                    Harf Çizgi & Yazılış Yönü Atölyesi
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <h3 className="font-bold text-xs sm:text-sm md:text-base text-white tracking-tight truncate">
+                                    Harf & Çizgi Atölyesi
                                 </h3>
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                                    1. Sınıf MEB
+                                <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
+                                    MEB
                                 </span>
                             </div>
-                            <p className="text-[11px] text-slate-400 hidden sm:block">
-                                Kılavuz çizgili satır, animasyonlu yazılış yönü okları ve dokunmatik çizim tahtası
-                            </p>
                         </div>
                     </div>
 
                     {/* Kategori Sekmeleri (Harfler, Rakamlar, Çizgiler) */}
-                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
                         <button
                             type="button"
                             onClick={() => setCategory('letters')}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            className={`px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                                 category === 'letters'
                                     ? 'bg-amber-500 text-slate-950 shadow-sm'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            🔤 Harfler
+                            🔤 <span className="hidden xs:inline">Harfler</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setCategory('numbers')}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            className={`px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                                 category === 'numbers'
                                     ? 'bg-amber-500 text-slate-950 shadow-sm'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            🔢 Rakamlar
+                            🔢 <span className="hidden xs:inline">Rakamlar</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setCategory('lines')}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            className={`px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                                 category === 'lines'
                                     ? 'bg-amber-500 text-slate-950 shadow-sm'
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            〰️ Çizgiler
+                            〰️ <span className="hidden xs:inline">Çizgiler</span>
                         </button>
                     </div>
 
                     {/* Sağ Kontroller: Büyüt / Kapat */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                         <button
                             type="button"
                             onClick={() => setWindowState(prev => prev === 'maximized' ? 'normal' : 'maximized')}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                            className="hidden sm:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                             title={windowState === 'maximized' ? 'Küçült' : 'Tam Ekran'}
                         >
                             {windowState === 'maximized' ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -336,7 +356,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            className="p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-rose-400 bg-slate-800/60 hover:bg-rose-500/20 transition-colors cursor-pointer"
                             title="Kapat"
                         >
                             <X className="w-4 h-4" />
@@ -344,11 +364,123 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                     </div>
                 </div>
 
-                {/* 2. ANA ÇALIŞMA ALANI (2 Sütunlu: Sol Panel Seçici + Sağ Çizim Alanı) */}
+                {/* 1.5 MOBİL HIZLI SEÇİM BARI (lg:hidden) */}
+                <div className="lg:hidden shrink-0 bg-slate-900/95 border-b border-slate-800 px-3 py-2 space-y-2 select-none z-20">
+                    {category === 'letters' && (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={selectedGroupIndex}
+                                    onChange={(e) => {
+                                        const idx = Number(e.target.value);
+                                        setSelectedGroupIndex(idx);
+                                        setSelectedLetter(MEB_LETTER_GROUPS[idx].letters[0]);
+                                    }}
+                                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-amber-300 focus:outline-none focus:border-amber-500"
+                                >
+                                    {MEB_LETTER_GROUPS.map((grp, idx) => (
+                                        <option key={grp.id} value={idx}>
+                                            {grp.title}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsUpperCase(true)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                            isUpperCase ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400'
+                                        }`}
+                                    >
+                                        Büyük
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsUpperCase(false)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                            !isUpperCase ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400'
+                                        }`}
+                                    >
+                                        Küçük
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                                {MEB_LETTER_GROUPS[selectedGroupIndex].letters.map((item) => {
+                                    const displayChar = isUpperCase ? item.char : item.lower;
+                                    const isSelected = selectedLetter.char === item.char;
+                                    return (
+                                        <button
+                                            key={item.char}
+                                            type="button"
+                                            onClick={() => setSelectedLetter(item)}
+                                            className={`px-3 py-1.5 rounded-xl border shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                                isSelected
+                                                    ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md scale-105'
+                                                    : 'bg-slate-950 border-slate-800 text-slate-200 hover:bg-slate-800'
+                                            }`}
+                                        >
+                                            <span className="text-xl font-bold font-diktemel leading-none">{displayChar}</span>
+                                            <span className="text-xs">{item.icon}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+
+                    {category === 'numbers' && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                            {NUMBERS_LIST.map((num) => {
+                                const isSelected = selectedNumber.char === num.char;
+                                return (
+                                    <button
+                                        key={num.char}
+                                        type="button"
+                                        onClick={() => setSelectedNumber(num)}
+                                        className={`px-3 py-1.5 rounded-xl border shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                            isSelected
+                                                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md scale-105'
+                                                : 'bg-slate-950 border-slate-800 text-slate-200 hover:bg-slate-800'
+                                        }`}
+                                    >
+                                        <span className="text-xl font-bold font-diktemel leading-none">{num.char}</span>
+                                        <span className="text-xs">{num.icon}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {category === 'lines' && (
+                        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+                            {LINE_EXERCISES.map((line) => {
+                                const isSelected = selectedLine.id === line.id;
+                                return (
+                                    <button
+                                        key={line.id}
+                                        type="button"
+                                        onClick={() => setSelectedLine(line)}
+                                        className={`px-3 py-1.5 rounded-xl border shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+                                            isSelected
+                                                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md'
+                                                : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+                                        }`}
+                                    >
+                                        <span>{line.icon}</span>
+                                        <span className="text-xs font-semibold">{line.title}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* 2. ANA ÇALIŞMA ALANI (Masaüstü: 2 Sütun, Mobil: Tam Ekran Canvas) */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0 bg-slate-950">
                     
-                    {/* SOL PANEL (3 Sütun): Harf / Rakam / Çizgi Seçim Menüsü */}
-                    <div className="lg:col-span-4 border-r border-slate-800 flex flex-col min-h-0 bg-slate-900/60 p-3 sm:p-4 space-y-4 overflow-y-auto">
+                    {/* SOL PANEL (Masaüstünde Görünür, Mobilde Üstteki Hızlı Seçim Barı Kullanılır) */}
+                    <div className="hidden lg:flex lg:col-span-4 border-r border-slate-800 flex-col min-h-0 bg-slate-900/60 p-4 space-y-4 overflow-y-auto">
                         
                         {/* A. Harfler Kategorisi */}
                         {category === 'letters' && (
@@ -576,8 +708,8 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                     {/* SAĞ PANEL (8 Sütun): MEB Kılavuz Çizgili Çizim Tuvali */}
                     <div className="lg:col-span-8 flex flex-col min-h-0 bg-slate-950 relative overflow-hidden">
                         
-                        {/* Tuval Üst Araç Çubuğu */}
-                        <div className="shrink-0 h-12 bg-slate-900/60 border-b border-slate-800/80 px-4 flex items-center justify-between gap-2 z-20">
+                        {/* Tuval Üst Araç Çubuğu (Masaüstü için) */}
+                        <div className="hidden lg:flex shrink-0 h-12 bg-slate-900/60 border-b border-slate-800/80 px-4 items-center justify-between gap-2 z-20">
                             
                             {/* Sol Araçlar: Nasıl Yazılır, Kılavuz Çizgi Göster/Gizle, Hayalet Harf */}
                             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -692,7 +824,7 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                                     <div className="relative flex items-center justify-center">
                                         {/* TTKB Kılavuzlu Font (Oklar ve Numaralar Dahil) */}
                                         <span 
-                                            className="font-diktemel-kilavuzlu text-[280px] sm:text-[340px] text-white/20 select-none leading-none drop-shadow-md"
+                                            className="font-diktemel-kilavuzlu text-[170px] xs:text-[220px] sm:text-[280px] md:text-[340px] text-white/20 select-none leading-none drop-shadow-md"
                                         >
                                             {currentChar}
                                         </span>
@@ -755,6 +887,79 @@ export default function LetterWritingScreen({ isOpen = true, onClose }) {
                                 <span className="bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800 hidden sm:inline">
                                     Kılavuz Çizgi Standardı: MEB TTKB
                                 </span>
+                            </div>
+                        </div>
+
+                        {/* MOBİL ALT ÇİZİM ARAÇLARI DOKU (lg:hidden) */}
+                        <div className="lg:hidden shrink-0 bg-slate-900/95 border-t border-slate-800 px-3 py-2 flex items-center justify-between gap-2 z-20 select-none">
+                            {/* Renk Seçimi */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {PEN_COLORS.slice(0, 5).map((c) => (
+                                    <button
+                                        key={c.hex}
+                                        type="button"
+                                        onClick={() => {
+                                            setPenColor(c.hex);
+                                            setIsEraser(false);
+                                        }}
+                                        style={{ backgroundColor: c.hex }}
+                                        className={`w-6 h-6 rounded-full transition-all cursor-pointer ${
+                                            penColor === c.hex && !isEraser
+                                                ? 'ring-2 ring-white scale-110'
+                                                : 'opacity-70 hover:opacity-100'
+                                        }`}
+                                        title={c.name}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Çizim & Kontrol Butonları */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEraser(prev => !prev)}
+                                    className={`p-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+                                        isEraser
+                                            ? 'bg-amber-500 text-slate-950 border-amber-400'
+                                            : 'bg-slate-950 border-slate-800 text-slate-300'
+                                    }`}
+                                    title="Silgi"
+                                >
+                                    <Eraser className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={clearCanvas}
+                                    className="p-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:text-rose-400 text-xs transition-colors cursor-pointer"
+                                    title="Temizle"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={startDemonstration}
+                                    disabled={isDemonstrating}
+                                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                                    title="Nasıl Yazılır?"
+                                >
+                                    <Play className="w-3.5 h-3.5 fill-current" />
+                                    <span>Yaz</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGhostGuide(prev => !prev)}
+                                    className={`p-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+                                        showGhostGuide
+                                            ? 'bg-slate-800 text-amber-300 border-amber-500/30'
+                                            : 'bg-slate-950 text-slate-400 border-slate-800'
+                                    }`}
+                                    title="İz Harf"
+                                >
+                                    {showGhostGuide ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </button>
                             </div>
                         </div>
                     </div>

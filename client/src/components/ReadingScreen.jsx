@@ -241,34 +241,34 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
     const isMax = windowState === 'maximized';
 
     return (
-        <div ref={windowConstraintsRef} className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+        <div ref={windowConstraintsRef} className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-0 sm:p-4 md:p-6 overflow-hidden">
             {/* Arka Plan Karartması (Yarı saydam, pencere dışına tıklama) */}
             <div 
-                className="absolute inset-0 bg-black/40 backdrop-blur-xs pointer-events-auto transition-opacity"
+                className="absolute inset-0 bg-black/50 backdrop-blur-xs pointer-events-auto transition-opacity"
                 onClick={() => {}}
             />
 
-            {/* Hareket Ettirilebilir (Draggable) Ana Pencere */}
+            {/* Hareket Ettirilebilir (Masaüstü) / Tam Ekran (Mobil) Ana Pencere */}
             <motion.div
-                drag={!isMax}
+                drag={!isMax && typeof window !== 'undefined' && window.innerWidth >= 768}
                 dragMomentum={false}
                 dragElastic={0.05}
-                initial={{ scale: 0.9, opacity: 0, y: 15 }}
+                initial={{ scale: 0.95, opacity: 0, y: 15 }}
                 animate={{ 
                     scale: 1, 
                     opacity: 1, 
                     y: 0,
-                    width: isMax ? '98vw' : '92vw',
-                    maxWidth: isMax ? '100%' : '1080px',
-                    height: isMax ? '96vh' : '88vh',
-                    maxHeight: isMax ? '100%' : '840px'
+                    width: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100vw' : '92vw',
+                    maxWidth: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100%' : '1080px',
+                    height: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100dvh' : '88vh',
+                    maxHeight: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100%' : '840px'
                 }}
-                exit={{ scale: 0.9, opacity: 0, y: 15 }}
+                exit={{ scale: 0.95, opacity: 0, y: 15 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className={`pointer-events-auto relative rounded-3xl shadow-2xl border flex flex-col overflow-hidden select-none ${currentTheme.container}`}
+                className={`pointer-events-auto relative rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border flex flex-col overflow-hidden select-none ${currentTheme.container}`}
             >
-                {/* --- 1. ÜST BAŞLIK VE PENCERE KONTROLLERİ (Sürüklenebilir Alan) --- */}
-                <header className={`window-drag-handle flex flex-wrap items-center justify-between px-5 py-3 border-b cursor-grab active:cursor-grabbing backdrop-blur-md ${currentTheme.header}`}>
+                {/* --- 1. ÜST BAŞLIK VE PENCERE KONTROLLERİ --- */}
+                <header className={`window-drag-handle flex flex-wrap items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b cursor-grab active:cursor-grabbing backdrop-blur-md gap-2 ${currentTheme.header}`}>
                     {/* Sol: İkon, Başlık ve Sekme Değiştirici */}
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold shadow-inner">

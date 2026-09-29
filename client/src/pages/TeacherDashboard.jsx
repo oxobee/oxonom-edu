@@ -265,8 +265,8 @@ const TeacherDashboard = () => {
           </div>
         </div>
 
-        {/* Hızlı İşlemler & Kısayollar (Özel Eylem Butonları Paneli) */}
-        <div className="space-y-3">
+        {/* Hızlı İşlemler & Kısayollar (Mobilde Yatay Slider, Masaüstünde 5'li Grid) */}
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary shadow-xs">
@@ -276,53 +276,60 @@ const TeacherDashboard = () => {
                 Hızlı Eylemler & Kısayollar
               </h3>
             </div>
+            {/* Mobilde kaydırma ipucu rozeti */}
+            <span className="text-[10px] font-semibold text-primary/80 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full sm:hidden flex items-center gap-1">
+              Kaydır ➔
+            </span>
             <span className="text-[11px] text-muted-foreground/80 font-medium hidden sm:inline">
               Öğretmen eylem merkezi
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Mobilde Yatay Slider (Scroll / Snap), Tabletten itibaren Grid */}
+          <div className="flex overflow-x-auto pb-3 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-3 scrollbar-none snap-x snap-mandatory">
             {quickActions.map((action, idx) => {
               const Icon = action.icon;
               const theme = ACTION_THEMES[action.color] || ACTION_THEMES.indigo;
               const isPending = action.color === 'rose' && stats.pendingMeetings > 0;
 
               return (
-                <AnimatedItem key={idx} index={idx} stagger={0.05}>
-                  <motion.button
-                    whileHover={{ y: -3, scale: 1.015 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate(action.path)}
-                    className={`w-full group relative overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md bg-gradient-to-br ${theme.glow} ${theme.bg} ${theme.border} backdrop-blur-xs flex items-center gap-3.5`}
-                  >
-                    {/* Canlı İkon Kutusu */}
-                    <div className={`w-11 h-11 rounded-xl border border-white/10 flex items-center justify-center shrink-0 transition-all duration-200 ${theme.iconBg} ${theme.iconShadow}`}>
-                      <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
-                    </div>
-
-                    {/* Başlık & Açıklama */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs sm:text-sm font-bold text-foreground group-hover:text-white transition-colors truncate">
-                          {action.title}
-                        </span>
-                        {isPending && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse shrink-0 shadow-xs">
-                            {stats.pendingMeetings}
-                          </span>
-                        )}
+                <div key={idx} className="shrink-0 snap-start w-[240px] xs:w-[260px] sm:w-auto">
+                  <AnimatedItem index={idx} stagger={0.04}>
+                    <motion.button
+                      whileHover={{ y: -3, scale: 1.015 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate(action.path)}
+                      className={`w-full h-full group relative overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md bg-gradient-to-br ${theme.glow} ${theme.bg} ${theme.border} backdrop-blur-xs flex items-center gap-3.5`}
+                    >
+                      {/* Canlı İkon Kutusu */}
+                      <div className={`w-11 h-11 rounded-xl border border-white/10 flex items-center justify-center shrink-0 transition-all duration-200 ${theme.iconBg} ${theme.iconShadow}`}>
+                        <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground group-hover:text-muted-foreground/90 transition-colors truncate mt-0.5 font-medium">
-                        {action.subtitle}
-                      </p>
-                    </div>
 
-                    {/* Sağ Eylem Oku */}
-                    <div className={`shrink-0 opacity-40 group-hover:opacity-100 transition-all duration-200 ${theme.arrow}`}>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </motion.button>
-                </AnimatedItem>
+                      {/* Başlık & Açıklama */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs sm:text-sm font-bold text-foreground group-hover:text-white transition-colors truncate">
+                            {action.title}
+                          </span>
+                          {isPending && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse shrink-0 shadow-xs">
+                              {stats.pendingMeetings}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground group-hover:text-muted-foreground/90 transition-colors truncate mt-0.5 font-medium">
+                          {action.subtitle}
+                        </p>
+                      </div>
+
+                      {/* Sağ Eylem Oku */}
+                      <div className={`shrink-0 opacity-40 group-hover:opacity-100 transition-all duration-200 ${theme.arrow}`}>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </motion.button>
+                  </AnimatedItem>
+                </div>
               );
             })}
           </div>
@@ -455,96 +462,150 @@ const TeacherDashboard = () => {
 
           {/* Pending Meeting Requests & Recent Announcements */}
           <div className="space-y-6">
-            {/* Meetings Box */}
-            <div className="space-y-4">
+            {/* 1. Görüşme Talepleri Konsolu (Özel Randevu Paneli) */}
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground" /> Görüşme Talepleri
-                </h2>
-                <Link to="/meetings" className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 group transition-colors">
-                  <span>Tümü</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400 shadow-xs">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-foreground">
+                      Görüşme Talepleri
+                    </h2>
+                    <span className="text-[11px] text-muted-foreground">
+                      Öğrenci & veli randevuları
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {pendingMeetings.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white animate-pulse shadow-xs">
+                      {pendingMeetings.length} bekleyen
+                    </span>
+                  )}
+                  <Link to="/meetings" className="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 group transition-colors">
+                    <span>Tümü</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
               </div>
 
               {pendingMeetings.length === 0 ? (
-                <Card className="border-dashed border-border bg-muted/20">
-                  <CardContent className="py-8 text-center space-y-1">
-                    <p className="text-xs font-semibold text-foreground">Bekleyen görüşme talebi yok</p>
-                    <p className="text-[11px] text-muted-foreground">Öğrencilerinizden yeni talep geldiğinde burada gösterilecektir.</p>
-                  </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 p-6 text-center space-y-1.5">
+                  <div className="w-8 h-8 rounded-full bg-muted/60 mx-auto flex items-center justify-center text-muted-foreground">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs font-semibold text-foreground">Bekleyen görüşme talebi yok</p>
+                  <p className="text-[11px] text-muted-foreground">Öğrencilerinizden yeni talep geldiğinde burada listelenecektir.</p>
+                </div>
               ) : (
                 <div className="space-y-2.5">
-                  {pendingMeetings.map((req, idx) => (
-                    <AnimatedItem key={req._id} index={idx} stagger={0.05}>
-                      <motion.div
-                        whileHover={{ y: -2, transition: { duration: 0.15 } }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate('/meetings')}
-                        className="p-4 rounded-xl bg-card hover:bg-muted/40 border border-border transition-colors cursor-pointer space-y-2 shadow-xs"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-xs font-semibold text-foreground truncate max-w-[180px]">
-                            {req.subject}
-                          </h4>
-                          <Badge
-                            variant={
-                              req.urgency === 'urgent'
-                                ? 'danger'
-                                : req.urgency === 'high'
-                                ? 'warning'
-                                : 'neutral'
-                            }
-                            size="xs"
-                          >
-                            {req.urgency === 'urgent' ? 'Acil' : req.urgency === 'high' ? 'Yüksek' : 'Normal'}
-                          </Badge>
-                        </div>
+                  {pendingMeetings.map((req, idx) => {
+                    const isUrgent = req.urgency === 'urgent';
+                    const isHigh = req.urgency === 'high';
 
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                          <span className="font-medium text-foreground">
-                            {req.studentId?.username || 'Öğrenci'}
-                          </span>
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            {new Date(req.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                          </span>
-                        </div>
-                      </motion.div>
-                    </AnimatedItem>
-                  ))}
+                    const borderAccent = isUrgent
+                      ? 'border-l-4 border-l-rose-500 bg-gradient-to-r from-rose-500/[0.08] to-card border-rose-500/30'
+                      : isHigh
+                      ? 'border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-500/[0.08] to-card border-amber-500/30'
+                      : 'border-l-4 border-l-sky-500 bg-gradient-to-r from-sky-500/[0.08] to-card border-sky-500/30';
+
+                    const studentInitial = req.studentId?.username?.[0]?.toUpperCase() || 'Ö';
+
+                    return (
+                      <AnimatedItem key={req._id} index={idx} stagger={0.04}>
+                        <motion.div
+                          whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate('/meetings')}
+                          className={`p-3.5 sm:p-4 rounded-xl border ${borderAccent} transition-all cursor-pointer shadow-xs hover:shadow-md group flex items-center gap-3`}
+                        >
+                          {/* Öğrenci Baş Harf Rozeti */}
+                          <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/60 flex items-center justify-center font-bold text-xs text-rose-300 shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                            {studentInitial}
+                          </div>
+
+                          {/* Talep Başlığı & Öğrenci */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-xs sm:text-sm font-semibold text-foreground group-hover:text-rose-300 transition-colors truncate">
+                                {req.subject}
+                              </h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                isUrgent
+                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                                  : isHigh
+                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                  : 'bg-sky-500/20 text-sky-400 border border-sky-500/40'
+                              }`}>
+                                {isUrgent ? 'Acil' : isHigh ? 'Yüksek' : 'Normal'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                              <span className="font-medium text-slate-300">
+                                {req.studentId?.username || 'Öğrenci'}
+                              </span>
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                {new Date(req.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Sağ Ok */}
+                          <div className="shrink-0 text-muted-foreground/40 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
+                            <ArrowRight className="w-4 h-4" />
+                          </div>
+                        </motion.div>
+                      </AnimatedItem>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* Quick Announcements Shortcut */}
-            <Card className="border border-border bg-card shadow-xs">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-lg border border-border bg-muted/50 flex items-center justify-center text-foreground">
-                    <Megaphone className="w-4 h-4" />
-                  </div>
-                  <Badge variant="secondary" size="xs">
-                    Hızlı Duyuru
-                  </Badge>
+            {/* 2. Sınıfa Seslen / Duyuru Yayın Stüdyosu Kartı */}
+            <div className="relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/80 via-slate-900 to-purple-950/50 p-5 sm:p-6 shadow-md shadow-indigo-950/40 group space-y-4">
+              {/* Arka plan ışık efektleri */}
+              <div className="absolute top-0 right-0 -mr-12 -mt-12 w-40 h-40 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-32 h-32 rounded-full bg-purple-500/15 blur-xl pointer-events-none" />
+
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform shrink-0">
+                  <Megaphone className="w-5 h-5" />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-foreground">Sınıfınıza Hemen Seslenin</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Önemli sınav tarihleri veya ders hatırlatmalarını tüm öğrencilerinize anında iletin.
-                  </p>
-                </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  fullWidth
-                  onClick={() => navigate('/announcements')}
-                >
-                  Duyuru Oluştur
-                </Button>
-              </CardContent>
-            </Card>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  📢 Hızlı Bildiri
+                </span>
+              </div>
+
+              <div className="relative z-10 space-y-1">
+                <h4 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                  Sınıfınıza Hemen Seslenin
+                </h4>
+                <p className="text-xs text-slate-300/80 leading-relaxed">
+                  Önemli sınav tarihleri, ödev teslimleri veya sınıf duyurularını tüm öğrencilerinize anında iletin.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/announcements')}
+                className="relative z-10 w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer group-hover:shadow-lg group-hover:shadow-indigo-500/35"
+              >
+                <Megaphone className="w-4 h-4" />
+                <span>Duyuru Oluştur & Paylaş</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+
+              <div className="relative z-10 flex items-center justify-between text-[11px] text-indigo-300/70 pt-1 border-t border-indigo-500/20 font-medium">
+                <span>🎯 Tek tıkla tüm şubelere</span>
+                <span>⚡ Anlık bildirim zili</span>
+              </div>
+            </div>
           </div>
         </div>
 

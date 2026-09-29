@@ -5,7 +5,7 @@ import {
   X, Maximize2, Minimize2, PenTool, Eraser, Trash2,
   Trophy, Zap, Eye, EyeOff,
   ArrowRight, ArrowLeft, RefreshCw, Minus, Download,
-  Settings, Palette, ChevronDown, ChevronUp
+  Settings, Palette
 } from 'lucide-react';
 import { useModuleDock } from '../context/ModuleDockContext';
 
@@ -39,6 +39,99 @@ function playPopSound(step = 1) {
 
 function playWrongSound() {
   playTone(220, 'sawtooth', 0.2);
+}
+
+// ==========================================
+// GERÇEKÇİ TÜRKÇE SES İLE SAYILARI OKUMA (0-100)
+// ==========================================
+let currentNumberAudio = null;
+
+const TURKISH_NUMBER_WORDS = {
+  0: 'sıfır', 1: 'bir', 2: 'iki', 3: 'üç', 4: 'dört', 5: 'beş', 6: 'altı', 7: 'yedi', 8: 'sekiz', 9: 'dokuz',
+  10: 'on', 20: 'yirmi', 30: 'otuz', 40: 'kırk', 50: 'elli', 60: 'altmış', 70: 'yetmiş', 80: 'seksen', 90: 'doksan', 100: 'yüz'
+};
+
+function getTurkishNumberName(n) {
+  if (n <= 10) return TURKISH_NUMBER_WORDS[n] || String(n);
+  if (n === 100) return 'yüz';
+  const t = Math.floor(n / 10) * 10;
+  const o = n % 10;
+  if (o === 0) return TURKISH_NUMBER_WORDS[t] || String(n);
+  return `${TURKISH_NUMBER_WORDS[t]} ${TURKISH_NUMBER_WORDS[o]}`;
+}
+
+function speakWithWebSpeechFallback(number, onEnd) {
+  if (!('speechSynthesis' in window)) {
+    if (onEnd) onEnd();
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    const text = getTurkishNumberName(number);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+
+    // En kaliteli Türkçe ses varsa seç
+    const voices = window.speechSynthesis.getVoices();
+    const trVoice = voices.find(v => 
+      (v.lang === 'tr-TR' || v.lang === 'tr') && 
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Yelda') || v.name.includes('Cem') || v.name.includes('Ahmet'))
+    ) || voices.find(v => v.lang === 'tr-TR' || v.lang === 'tr');
+
+    if (trVoice) utterance.voice = trVoice;
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => { if (onEnd) onEnd(); };
+    utterance.onerror = () => { if (onEnd) onEnd(); };
+    window.speechSynthesis.speak(utterance);
+  } catch (_) {
+    if (onEnd) onEnd();
+  }
+}
+
+function playNumberVoice(number, onStart, onEnd) {
+  if (number < 0 || number > 100) return;
+
+  if (currentNumberAudio) {
+    try {
+      currentNumberAudio.pause();
+      currentNumberAudio.currentTime = 0;
+    } catch (_) {}
+    currentNumberAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
+
+  if (onStart) onStart();
+
+  const localAudioUrl = `/audio/numbers/${number}.mp3`;
+  try {
+    const audio = new Audio(localAudioUrl);
+    audio.volume = 1.0;
+    currentNumberAudio = audio;
+
+    audio.onended = () => {
+      currentNumberAudio = null;
+      if (onEnd) onEnd();
+    };
+
+    audio.onerror = () => {
+      currentNumberAudio = null;
+      speakWithWebSpeechFallback(number, onEnd);
+    };
+
+    const promise = audio.play();
+    if (promise !== undefined) {
+      promise.catch(() => {
+        currentNumberAudio = null;
+        speakWithWebSpeechFallback(number, onEnd);
+      });
+    }
+  } catch (_) {
+    speakWithWebSpeechFallback(number, onEnd);
+  }
 }
 
 // Renk Paleti (Hücreleri boyamak için)
@@ -88,7 +181,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const [selectedPaintColor, setSelectedPaintColor] = useState('amber');
   const [isPlayingAuto, setIsPlayingAuto] = useState(false);
   const [autoCurrentNumber, setAutoCurrentNumber] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(500); // ms
+  const [playbackSpeed, setPlaybackSpeed] = useState(600); // ms (doğal sesli okuma için ideal)
   const [hideNumbersMode, setHideNumbersMode] = useState(false);
   const [revealedNumbers, setRevealedNumbers] = useState({});
   const autoPlayTimerRef = useRef(null);
@@ -128,6 +221,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
 
   // Ses Durumu
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Sayıları Sesli Okuma Durumu (Gerçekçi Türkçe Ses ile 0-100)
+  const [speakNumbers, setSpeakNumbers] = useState(true);
 
   // ==========================================
   // MODÜL DOCK ENTEGRASYONU
@@ -185,7 +281,12 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       newHighlights[i] = selectedPaintColor;
     }
     setHighlightedCells(newHighlights);
-    if (soundEnabled) playSuccessSound();
+
+    if (speakNumbers) {
+      playNumberVoice(step);
+    } else if (soundEnabled) {
+      playSuccessSound();
+    }
   };
 
   // Otomatik Oynatma Döngüsü
@@ -200,7 +301,11 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
             if (soundEnabled) playSuccessSound();
             return 100;
           }
-          if (soundEnabled) playPopSound(next / chartStep);
+          if (speakNumbers) {
+            playNumberVoice(next);
+          } else if (soundEnabled) {
+            playPopSound(next / chartStep);
+          }
           setHighlightedCells(h => ({ ...h, [next]: selectedPaintColor }));
           return next;
         });
@@ -209,7 +314,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       clearInterval(autoPlayTimerRef.current);
     }
     return () => clearInterval(autoPlayTimerRef.current);
-  }, [isPlayingAuto, chartStep, playbackSpeed, selectedPaintColor, soundEnabled]);
+  }, [isPlayingAuto, chartStep, playbackSpeed, selectedPaintColor, soundEnabled, speakNumbers]);
 
   const handleToggleAutoPlay = () => {
     if (isPlayingAuto) {
@@ -234,7 +339,11 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const handleCellClick = (num) => {
     if (hideNumbersMode && !revealedNumbers[num]) {
       setRevealedNumbers(prev => ({ ...prev, [num]: true }));
-      if (soundEnabled) playTone(440, 'triangle', 0.1);
+      if (speakNumbers) {
+        playNumberVoice(num);
+      } else if (soundEnabled) {
+        playTone(440, 'triangle', 0.1);
+      }
       return;
     }
 
@@ -244,10 +353,15 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         delete copy[num];
       } else {
         copy[num] = selectedPaintColor;
-        if (soundEnabled) playTone(300 + (num % 20) * 15, 'sine', 0.08);
       }
       return copy;
     });
+
+    if (speakNumbers) {
+      playNumberVoice(num);
+    } else if (soundEnabled) {
+      playTone(300 + (num % 20) * 15, 'sine', 0.08);
+    }
   };
 
   // ==========================================
@@ -259,7 +373,11 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     const nextPos = mascotPos + lineStep;
     setMascotPos(nextPos);
     setJumpHistory(prev => [...prev, nextPos]);
-    if (soundEnabled) playTone(350 + (nextPos % 30) * 15, 'sine', 0.15);
+    if (speakNumbers) {
+      playNumberVoice(nextPos);
+    } else if (soundEnabled) {
+      playTone(350 + (nextPos % 30) * 15, 'sine', 0.15);
+    }
     setTimeout(() => setIsJumping(false), 260);
   };
 
@@ -269,7 +387,11 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     const nextPos = mascotPos - lineStep;
     setMascotPos(nextPos);
     setJumpHistory(prev => [...prev, nextPos]);
-    if (soundEnabled) playTone(280 + (nextPos % 30) * 15, 'triangle', 0.15);
+    if (speakNumbers) {
+      playNumberVoice(nextPos);
+    } else if (soundEnabled) {
+      playTone(280 + (nextPos % 30) * 15, 'triangle', 0.15);
+    }
     setTimeout(() => setIsJumping(false), 260);
   };
 
@@ -277,6 +399,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     setMascotPos(0);
     setJumpHistory([0]);
     setIsJumping(false);
+    if (speakNumbers) {
+      playNumberVoice(0);
+    }
   };
 
   // ==========================================
@@ -327,17 +452,30 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       setPracticeFeedback('correct');
       setPracticeScore(s => s + 10);
       setPracticeStreak(st => st + 1);
-      if (soundEnabled) playSuccessSound();
+      if (speakNumbers) {
+        playNumberVoice(opt, null, () => {
+          if (soundEnabled) playSuccessSound();
+        });
+      } else if (soundEnabled) {
+        playSuccessSound();
+      }
       setTimeout(() => {
         generateNewPracticeQuestion();
-      }, 1200);
+      }, 1300);
     } else {
       setPracticeFeedback('wrong');
       setPracticeStreak(0);
-      if (soundEnabled) playWrongSound();
+      if (speakNumbers) {
+        playNumberVoice(opt);
+        setTimeout(() => {
+          if (soundEnabled) playWrongSound();
+        }, 400);
+      } else if (soundEnabled) {
+        playWrongSound();
+      }
       setTimeout(() => {
         setPracticeFeedback(null);
-      }, 900);
+      }, 1000);
     }
   };
 
@@ -456,7 +594,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 </span>
               </div>
 
-              {/* Sekme Değiştirici (Mobilde swipeable / taşmayan kompakt yapı) */}
+              {/* Sekme Değiştirici */}
               <div className="flex items-center gap-1 mt-0.5 overflow-x-auto no-scrollbar py-0.5">
                 <button
                   type="button"
@@ -497,12 +635,29 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
 
           {/* Sağ: Araçlar & Pencere Butonları */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Ses Aç / Kapat */}
+            {/* Sayıları Sesli Oku Aç / Kapat Butonu */}
+            <button
+              type="button"
+              onClick={() => setSpeakNumbers(v => !v)}
+              className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl flex items-center gap-1 sm:gap-1.5 transition cursor-pointer active:scale-95 ${
+                speakNumbers
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-transparent'
+              }`}
+              title={speakNumbers ? "Sayıları Sesli Okuma Açık (Kapatmak için tıkla)" : "Sayıları Sesli Okuma Kapalı (Açmak için tıkla)"}
+            >
+              <span className="text-xs sm:text-sm">🗣️</span>
+              <span className="hidden md:inline text-[11px] font-bold">
+                {speakNumbers ? 'Sesli Oku' : 'Sessiz'}
+              </span>
+            </button>
+
+            {/* Genel Ses Aç / Kapat */}
             <button
               type="button"
               onClick={() => setSoundEnabled(v => !v)}
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
-              title={soundEnabled ? "Sesi Kapat" : "Sesi Aç"}
+              title={soundEnabled ? "Efekt Seslerini Kapat" : "Efekt Seslerini Aç"}
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />}
             </button>
@@ -641,6 +796,30 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 </div>
               </div>
 
+              {/* Sesli Okuma Özelliği Kartı */}
+              <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">🗣️</span>
+                    <span className="text-xs font-bold text-slate-200">Sayıları Sesli Oku</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSpeakNumbers(v => !v)}
+                    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                      speakNumbers ? 'bg-emerald-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform transform ${
+                      speakNumbers ? 'translate-x-4.5' : 'translate-x-0.5'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  {speakNumbers ? '✅ Gerçekçi Türkçe telaffuz aktif (0-100)' : '❌ Sessiz sayma'}
+                </p>
+              </div>
+
               {/* Otomatik Oynatma ve Kontroller */}
               <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between text-xs">
@@ -679,9 +858,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   <span>Hız:</span>
                   <div className="flex items-center gap-1">
                     {[
-                      { label: 'Yavaş', ms: 750 },
-                      { label: 'Normal', ms: 450 },
-                      { label: 'Hızlı', ms: 220 }
+                      { label: 'Yavaş', ms: 900 },
+                      { label: 'Normal', ms: 600 },
+                      { label: 'Hızlı', ms: 380 }
                     ].map(s => (
                       <button
                         key={s.label}
@@ -759,7 +938,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               )}
             </div>
 
-            {/* MERKEZ: 10x10 YÜZLÜK TABLO IZGARASI (Mobilde tam merkezli ve geniş) */}
+            {/* MERKEZ: 10x10 YÜZLÜK TABLO IZGARASI */}
             <div className="flex-1 p-1.5 xs:p-2 sm:p-4 md:p-6 overflow-hidden flex items-center justify-center relative">
               {/* Çizim Katmanı */}
               {isDrawingMode && (
@@ -831,6 +1010,18 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 title="Sıfırla"
               >
                 <RotateCcw className="w-4 h-4" />
+              </button>
+
+              {/* Sesli Okuma Hızlı Toggle */}
+              <button
+                type="button"
+                onClick={() => setSpeakNumbers(v => !v)}
+                className={`p-2 rounded-xl flex items-center justify-center transition active:scale-95 shrink-0 ${
+                  speakNumbers ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-500'
+                }`}
+                title={speakNumbers ? "Sayıları Sesli Oku: Açık" : "Sayıları Sesli Oku: Kapalı"}
+              >
+                <span className="text-sm">🗣️</span>
               </button>
 
               {/* Renk Seçici Popover Tetikleyici */}
@@ -917,14 +1108,30 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                     </button>
                   </div>
 
+                  {/* Sayıları Sesli Oku */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <span>🗣️</span> Sayıları Sesli Oku:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSpeakNumbers(v => !v)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition active:scale-95 ${
+                        speakNumbers ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {speakNumbers ? 'Açık' : 'Kapalı'}
+                    </button>
+                  </div>
+
                   {/* Hız */}
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-semibold">Oynatma Hızı:</span>
                     <div className="flex items-center gap-1">
                       {[
-                        { label: 'Yavaş', ms: 750 },
-                        { label: 'Normal', ms: 450 },
-                        { label: 'Hızlı', ms: 220 }
+                        { label: 'Yavaş', ms: 900 },
+                        { label: 'Normal', ms: 600 },
+                        { label: 'Hızlı', ms: 380 }
                       ].map(s => (
                         <button
                           key={s.label}
@@ -988,7 +1195,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* ========================================================= */}
         {activeTab === 'line' && (
           <div className="flex-1 flex flex-col p-2.5 sm:p-6 overflow-hidden justify-between">
-            {/* Üst Ayar Çubuğu (Mobilde 2 temiz satır halinde) */}
+            {/* Üst Ayar Çubuğu */}
             <div className="bg-slate-850 p-2.5 sm:p-3 rounded-2xl border border-slate-800 shrink-0 space-y-2">
               <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
                 {/* Sayı Aralığı */}
@@ -1008,21 +1215,35 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   ))}
                 </div>
 
-                {/* Maskot Seçici */}
-                <div className="flex items-center gap-1 shrink-0">
-                  {MASCOTS.map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setSelectedMascot(m.id)}
-                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-base flex items-center justify-center transition active:scale-95 ${
-                        selectedMascot === m.id ? 'bg-emerald-500/20 border border-emerald-400 scale-105' : 'opacity-60 hover:opacity-100'
-                      }`}
-                      title={m.name}
-                    >
-                      {m.icon}
-                    </button>
-                  ))}
+                {/* Sağ Taraf: Sesli Okuma Durumu & Maskot Seçici */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSpeakNumbers(v => !v)}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition active:scale-95 ${
+                      speakNumbers ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'
+                    }`}
+                    title={speakNumbers ? "Sayıları Sesli Okuma Açık" : "Sayıları Sesli Okuma Kapalı"}
+                  >
+                    <span>🗣️</span>
+                    <span className="hidden xs:inline">{speakNumbers ? 'Sesli' : 'Sessiz'}</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {MASCOTS.map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedMascot(m.id)}
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-base flex items-center justify-center transition active:scale-95 ${
+                          selectedMascot === m.id ? 'bg-emerald-500/20 border border-emerald-400 scale-105' : 'opacity-60 hover:opacity-100'
+                        }`}
+                        title={m.name}
+                      >
+                        {m.icon}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1112,17 +1333,21 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1.5 no-scrollbar">
                 <span className="text-[10px] sm:text-xs text-slate-400 font-semibold shrink-0">Adımlar:</span>
                 {jumpHistory.map((stepVal, idx) => (
-                  <span
+                  <button
                     key={idx}
-                    className="px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold shrink-0"
+                    type="button"
+                    onClick={() => {
+                      if (speakNumbers) playNumberVoice(stepVal);
+                    }}
+                    className="px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold shrink-0 hover:bg-slate-700 transition"
                   >
                     {stepVal}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Alt Kontrol Butonları (Mobilde taşmayan, dengeli flex butonlar) */}
+            {/* Alt Kontrol Butonları */}
             <div className="flex items-center justify-center gap-2 sm:gap-3 shrink-0 pt-1">
               <button
                 type="button"
@@ -1170,6 +1395,17 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                     <span>Puan: {practiceScore}</span>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => setSpeakNumbers(v => !v)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
+                      speakNumbers ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span>🗣️</span>
+                    <span>{speakNumbers ? 'Sesli' : 'Sessiz'}</span>
+                  </button>
+
                   <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs">
                     <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>{practiceStreak}x Seri</span>
@@ -1185,21 +1421,25 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   </p>
                 </div>
 
-                {/* Örüntü Dizisi (Mobilde tek sırada taşmadan sığar) */}
+                {/* Örüntü Dizisi (Sayıya tıklanınca sesli telaffuz eder) */}
                 <div className="flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full py-1">
                   {practiceQuestion.sequence.map((num, idx) => {
                     const isBlank = idx === practiceQuestion.blankIndex;
                     return (
-                      <div
+                      <button
                         key={idx}
-                        className={`w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center font-mono font-extrabold text-sm xs:text-base sm:text-xl shadow-lg transition-all shrink-0 ${
+                        type="button"
+                        onClick={() => {
+                          if (!isBlank && speakNumbers) playNumberVoice(num);
+                        }}
+                        className={`w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center font-mono font-extrabold text-sm xs:text-base sm:text-xl shadow-lg transition-all shrink-0 cursor-pointer ${
                           isBlank
-                            ? 'bg-amber-400 text-slate-950 ring-2 sm:ring-4 ring-amber-300/40 animate-pulse text-base xs:text-lg sm:text-2xl'
-                            : 'bg-slate-900 border border-slate-700 text-white'
+                            ? 'bg-amber-400 text-slate-950 ring-2 sm:ring-4 ring-amber-300/40 animate-pulse text-base xs:text-lg sm:text-2xl cursor-default'
+                            : 'bg-slate-900 border border-slate-700 text-white hover:border-emerald-400 active:scale-95'
                         }`}
                       >
                         {isBlank ? '?' : num}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1236,7 +1476,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   <button
                     type="button"
                     onClick={generateNewPracticeQuestion}
-                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 mx-auto transition active:scale-95"
+                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 mx-auto transition active:scale-95 cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Farklı Soruya Geç
                   </button>

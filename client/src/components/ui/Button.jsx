@@ -91,7 +91,7 @@ export const Button = React.forwardRef(({
         renderIcon(effectiveLeftIcon, size === 'xs' ? 'w-3.5 h-3.5' : 'w-4 h-4')
       ) : null}
 
-      {children && <span>{children}</span>}
+      {children && <span className="inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>}
 
       {!isBusy && rightIcon ? (
         renderIcon(rightIcon, size === 'xs' ? 'w-3.5 h-3.5' : 'w-4 h-4')

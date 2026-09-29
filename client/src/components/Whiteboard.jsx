@@ -27,6 +27,7 @@ import LayersPanel from './LayersPanel';
 import ReadingScreen from './ReadingScreen';
 import LetterWritingScreen from './LetterWritingScreen';
 import RhythmicCountingScreen from './RhythmicCountingScreen';
+import SolarSystemScreen from './SolarSystemScreen';
 import EmojiPickerModal, { createEmojiImage } from './EmojiPickerModal';
 import { Focus, Smile, Blocks } from 'lucide-react';
 
@@ -157,6 +158,7 @@ const Whiteboard = () => {
     const [showReadingScreen, setShowReadingScreen] = useState(false); // İlkokul 1 Dk Okuma Ekranı
     const [showLetterWritingScreen, setShowLetterWritingScreen] = useState(false); // İlkokul Harf Çizgi & Yazılış Yönü Atölyesi
     const [showRhythmicScreen, setShowRhythmicScreen] = useState(false); // Ritmik Sayma & Sayı Doğrusu Atölyesi
+    const [showSolarSystemScreen, setShowSolarSystemScreen] = useState(false); // Güneş Sistemi & Gezegenler Keşif Atölyesi
     const [showModulesDropdown, setShowModulesDropdown] = useState(false); // Ders & Etkinlik Modülleri Açılır Menüsü
     const modulesDropdownRef = useRef(null);
     const [showEmojiModal, setShowEmojiModal] = useState(false); // Emoji & İşaret Kütüphanesi Modalı
@@ -5231,8 +5233,36 @@ const Whiteboard = () => {
                                         </button>
                                     )}
 
+                                    {/* Güneş Sistemi & Gezegenler Keşif Atölyesi */}
+                                    {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('gunes-sistemi-atolyesi')) && (
+                                        <button
+                                            onClick={() => {
+                                                setShowSolarSystemScreen(true);
+                                                setShowModulesDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer group ${
+                                                showSolarSystemScreen 
+                                                    ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400' 
+                                                    : 'hover:bg-muted/70 text-foreground border border-transparent hover:border-border/60'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
+                                                🪐
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-xs tracking-tight text-foreground flex items-center justify-between">
+                                                    <span>Güneş Sistemi</span>
+                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-medium">3-5. Sınıf</span>
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                                    Yörüngeler & Gezegen Keşfi
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )}
+
                                     {/* Eğer sınıfa hiçbir modül atanmamışsa */}
-                                    {boardMeta?.classId && !(boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('1-dk-okuma') && !(boardMeta.classId.enabledModules || []).includes('ritmik-sayma-atolyesi') && (
+                                    {boardMeta?.classId && !(boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('1-dk-okuma') && !(boardMeta.classId.enabledModules || []).includes('ritmik-sayma-atolyesi') && !(boardMeta.classId.enabledModules || []).includes('gunes-sistemi-atolyesi') && (
                                         <div className="p-3 text-center text-xs text-muted-foreground">
                                             Bu sınıf için henüz etkinleştirilmiş modül bulunmuyor.
                                         </div>
@@ -7081,6 +7111,44 @@ const Whiteboard = () => {
                             y: Math.max(40, y),
                             fontFamily: 'TTKBDikTemel',
                             fontSize: fontSize || 24,
+                            color: darkMode ? '#ffffff' : '#1e293b',
+                            stroke: darkMode ? '#ffffff' : '#1e293b',
+                            fontWeight: 'normal',
+                            fontStyle: 'normal',
+                            underline: false,
+                            strikethrough: false,
+                            size: 5
+                        };
+
+                        setElements(prev => [...prev, newElement]);
+                        if (socket) {
+                            socket.emit('draw-element', { roomId, socketId: socket.id, userId: (userRef.current || user)?.id, ...newElement });
+                        }
+                        setTimeout(() => renderCanvas(), 20);
+                    }}
+                />
+            )}
+
+            {/* Güneş Sistemi & Gezegenler Keşif Atölyesi Modalı */}
+            {showSolarSystemScreen && (
+                <SolarSystemScreen
+                    isOpen={showSolarSystemScreen}
+                    onClose={() => setShowSolarSystemScreen(false)}
+                    onAddToCanvas={({ text, title, fontSize }) => {
+                        const canvas = canvasRef.current;
+                        const cw = canvas ? canvas.width : 1200;
+                        const ch = canvas ? canvas.height : 800;
+                        const x = (-panOffset.x + (cw / (scale || 1)) / 2) - 250;
+                        const y = (-panOffset.y + (ch / (scale || 1)) / 2) - 150;
+
+                        const newElement = {
+                            id: crypto.randomUUID(),
+                            type: 'text',
+                            text: `${title}\n\n${text}`,
+                            x: Math.max(40, x),
+                            y: Math.max(40, y),
+                            fontFamily: 'TTKBDikTemel',
+                            fontSize: fontSize || 22,
                             color: darkMode ? '#ffffff' : '#1e293b',
                             stroke: darkMode ? '#ffffff' : '#1e293b',
                             fontWeight: 'normal',

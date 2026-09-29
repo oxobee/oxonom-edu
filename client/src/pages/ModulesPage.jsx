@@ -28,6 +28,7 @@ import ModuleMediaSlider from '../components/ModuleMediaSlider';
 import LetterWritingScreen from '../components/LetterWritingScreen';
 import ReadingScreen from '../components/ReadingScreen';
 import RhythmicCountingScreen from '../components/RhythmicCountingScreen';
+import SolarSystemScreen from '../components/SolarSystemScreen';
 import {
   PageHeader,
   Card,
@@ -214,7 +215,12 @@ const ModulesPage = () => {
   };
 
   const handleLaunchModule = (mod) => {
-    if (mod.key === 'harf-cizgi-atolyesi' || mod.key === '1-dk-okuma' || mod.key === 'ritmik-sayma-atolyesi') {
+    if (
+      mod.key === 'harf-cizgi-atolyesi' ||
+      mod.key === '1-dk-okuma' ||
+      mod.key === 'ritmik-sayma-atolyesi' ||
+      mod.key === 'gunes-sistemi-atolyesi'
+    ) {
       setRunningModules(prev => ({ ...prev, [mod.key]: true }));
     } else {
       // Diğer modüller için zengin tanıtım modalını aç
@@ -1158,6 +1164,13 @@ const ModulesPage = () => {
           <RhythmicCountingScreen
             isOpen={true}
             onClose={() => setRunningModules(prev => ({ ...prev, 'ritmik-sayma-atolyesi': false }))}
+          />
+        )}
+
+        {runningModules['gunes-sistemi-atolyesi'] && (
+          <SolarSystemScreen
+            isOpen={true}
+            onClose={() => setRunningModules(prev => ({ ...prev, 'gunes-sistemi-atolyesi': false }))}
           />
         )}
       </div>

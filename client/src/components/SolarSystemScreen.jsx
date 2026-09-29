@@ -95,10 +95,11 @@ function playTurkishVoice(body, onStart, onEnd) {
   if (onStart) onStart();
 
   const narrationText = body.speechNarration || `${body.name}. ${body.tagline}. ${body.funFact}`;
-  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=tr&client=tw-ob&q=${encodeURIComponent(narrationText)}`;
+  const localAudioUrl = `/audio/planets/${body.id}.mp3`;
 
   try {
-    const audio = new Audio(ttsUrl);
+    const audio = new Audio(localAudioUrl);
+    audio.volume = 1.0;
     currentAudioInstance = audio;
 
     audio.onended = () => {
@@ -106,16 +107,22 @@ function playTurkishVoice(body, onStart, onEnd) {
       if (onEnd) onEnd();
     };
 
-    audio.onerror = () => {
+    audio.onerror = (e) => {
+      console.warn('Local audio load failed, falling back to Web Speech:', e);
       currentAudioInstance = null;
       speakWithWebSpeechFallback(narrationText, onEnd);
     };
 
-    audio.play().catch(() => {
-      currentAudioInstance = null;
-      speakWithWebSpeechFallback(narrationText, onEnd);
-    });
-  } catch (_) {
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('Audio play blocked or failed, falling back to Web Speech:', err);
+        currentAudioInstance = null;
+        speakWithWebSpeechFallback(narrationText, onEnd);
+      });
+    }
+  } catch (err) {
+    console.error('Audio initialization error:', err);
     speakWithWebSpeechFallback(narrationText, onEnd);
   }
 }

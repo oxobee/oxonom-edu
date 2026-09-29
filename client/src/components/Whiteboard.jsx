@@ -25,6 +25,7 @@ import RoomQRModal from './RoomQRModal';
 import ImageCropModal from './ImageCropModal';
 import LayersPanel from './LayersPanel';
 import ReadingScreen from './ReadingScreen';
+import LetterWritingScreen from './LetterWritingScreen';
 import EmojiPickerModal, { createEmojiImage } from './EmojiPickerModal';
 import { Focus, Smile } from 'lucide-react';
 
@@ -153,6 +154,7 @@ const Whiteboard = () => {
     const [showRotateMenu, setShowRotateMenu] = useState(false);
     const [showLayersPanel, setShowLayersPanel] = useState(false); // Layers panel visibility
     const [showReadingScreen, setShowReadingScreen] = useState(false); // İlkokul 1 Dk Okuma Ekranı
+    const [showLetterWritingScreen, setShowLetterWritingScreen] = useState(false); // İlkokul Harf Çizgi & Yazılış Yönü Atölyesi
     const [showEmojiModal, setShowEmojiModal] = useState(false); // Emoji & İşaret Kütüphanesi Modalı
     const [showColorPalette, setShowColorPalette] = useState(false); // Hızlı Renk Paleti Popover
     const colorInputRef = useRef(null);
@@ -5142,6 +5144,22 @@ const Whiteboard = () => {
                                     </button>
                                 )}
 
+                                {/* Harf Çizgi & Yazılış Yönü Atölyesi - Sınıf modül yetkisine göre gösterilir */}
+                                {(!boardMeta?.classId || (boardMeta.classId.enabledModules || []).includes('harf-cizgi-atolyesi')) && (
+                                    <button
+                                        onClick={() => setShowLetterWritingScreen(true)}
+                                        className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-xs font-semibold border shadow-xs transition-all active:scale-95 cursor-pointer ${
+                                            showLetterWritingScreen
+                                                ? 'bg-amber-500 text-white border-transparent'
+                                                : 'bg-muted/60 border-border/80 text-foreground hover:bg-muted'
+                                        }`}
+                                        title="İlkokul Harf Çizgi & Yazılış Yönü Atölyesi"
+                                    >
+                                        <span className="text-xs sm:text-sm">✏️</span>
+                                        <span className="hidden sm:inline">Harf Atölyesi</span>
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => setIsTopRightExpanded(false)}
                                     className="p-1 sm:p-1.5 rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors cursor-pointer"
@@ -6934,6 +6952,39 @@ const Whiteboard = () => {
                             underline: false,
                             strikethrough: false,
                             size: 5
+                        };
+
+                        setElements(prev => [...prev, newElement]);
+                        if (socket) {
+                            socket.emit('draw-element', { roomId, socketId: socket.id, userId: (userRef.current || user)?.id, ...newElement });
+                        }
+                        setTimeout(() => renderCanvas(), 20);
+                    }}
+                />
+            )}
+
+            {/* 1. Sınıf Harf Çizgi & Yazılış Yönü Atölyesi Modalı */}
+            {showLetterWritingScreen && (
+                <LetterWritingScreen
+                    isOpen={showLetterWritingScreen}
+                    onClose={() => setShowLetterWritingScreen(false)}
+                    onAddToCanvas={(dataUrl) => {
+                        const canvas = canvasRef.current;
+                        const cw = canvas ? canvas.width : 1200;
+                        const ch = canvas ? canvas.height : 800;
+                        const x = (-panOffset.x + (cw / (scale || 1)) / 2) - 300;
+                        const y = (-panOffset.y + (ch / (scale || 1)) / 2) - 200;
+
+                        const newElement = {
+                            id: crypto.randomUUID(),
+                            type: 'image',
+                            dataURL: dataUrl,
+                            src: dataUrl,
+                            x: Math.max(40, x),
+                            y: Math.max(40, y),
+                            width: 600,
+                            height: 380,
+                            timestamp: Date.now()
                         };
 
                         setElements(prev => [...prev, newElement]);

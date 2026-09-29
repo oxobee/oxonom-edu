@@ -63,6 +63,40 @@ const INITIAL_READING_MODULE = {
   order: 1
 };
 
+const INITIAL_LETTER_WRITING_MODULE = {
+  key: 'harf-cizgi-atolyesi',
+  title: 'Harf Çizgi & Yazılış Yönü Atölyesi',
+  shortDescription: '1. Sınıf MEB standartlarında kılavuz çizgili satırda harf, rakam ve çizgi yazma atölyesi.',
+  longDescription: `Harf Çizgi & Yazılış Yönü Atölyesi, ilkokul 1. sınıf öğrencilerinin yazıya ilk adım attıkları dönemde harfleri doğru yön ve sırayla, MEB TTKB standartlarındaki 4 çizgili kılavuz satırda eğlenceli ve interaktif şekilde öğrenmelerini sağlayan akıllı tahta aracıdır.
+
+### 🌟 Öne Çıkan Pedagojik Özellikler:
+- **MEB Kılavuz Çizgili Satır:** Türk Millî Eğitim Bakanlığı standartlarındaki tepe, gövde, kırmızı taban ve kuyruk çizgileri.
+- **Tüm MEB Harf Grupları:** 1. gruptan (E-L-A-K-İ-N) 5. gruba kadar tüm büyük ve küçük harfler ile 0-9 rakamlar.
+- **Nasıl Yazılır? (Animasyonlu Kalem):** Numaralandırılmış ok yönleri ve hareketli kalemle harfin çiziliş hamlelerini adım adım gösterir.
+- **Dokunmatik & Kalemle Çizim:** Akıllı tahtada parmakla veya kalemle harfin üzerinden geçilerek motor beceri geliştirilir.
+- **Fonetik Ses & Görsel Kartlar:** Harfin fonetik sesini seslendirir; harfle başlayan nesne kartlarıyla ses-harf bağını pekiştirir.
+- **Tahtaya Aktarma:** Öğrencinin yazdığı harfi tek dokunuşla arkadaki ortak akıllı tahtaya aktarır.`,
+  coverImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&h=675&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&h=675&q=80',
+    'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&h=675&q=80'
+  ],
+  videoUrl: '',
+  videoEmbedCode: '',
+  badgeText: '1. Sınıf Temel',
+  category: 'Okuma & Yazma',
+  targetGrades: ['1'],
+  features: [
+    'MEB Kılavuz Çizgili Satır',
+    'Yazılış Yönü Okları (1, 2, 3)',
+    'Fonetik Seslendirme',
+    'Dokunmatik Çizim Tuvali',
+    'Tahtaya Tek Tıkla Aktar'
+  ],
+  isActive: true,
+  order: 2
+};
+
 // 60 Turkish realistic students (10 per class)
 const DEMO_STUDENTS_DATA = [
   // 1-A Sınıfı (İlkokul 1 - Doğum: 2017)
@@ -898,12 +932,16 @@ async function seedDemoData() {
 
     // 2.5 Seed Initial Add-on Module: 1 Dk Okuma ONLY if no modules exist in system!
     // NEVER overwrite existing modules created or updated by superadmin!
-    const existingModulesCount = await Module.countDocuments();
-    if (existingModulesCount === 0) {
+    const hasReadingModule = await Module.findOne({ key: '1-dk-okuma' });
+    if (!hasReadingModule) {
       await Module.create(INITIAL_READING_MODULE);
-      console.log('[DEMO SERVICE] Seeded initial baseline 1-dk-okuma module as no modules existed.');
-    } else {
-      console.log(`[DEMO SERVICE] Preserving all ${existingModulesCount} existing modules without overwriting.`);
+      console.log('[DEMO SERVICE] Seeded baseline 1-dk-okuma module.');
+    }
+
+    const hasLetterModule = await Module.findOne({ key: 'harf-cizgi-atolyesi' });
+    if (!hasLetterModule) {
+      await Module.create(INITIAL_LETTER_WRITING_MODULE);
+      console.log('[DEMO SERVICE] Seeded baseline harf-cizgi-atolyesi module.');
     }
 
     // Fetch all active modules currently in system

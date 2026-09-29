@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX,
-  Sparkles, CheckCircle2, ChevronRight, ChevronLeft,
+  Play, Pause, RotateCcw, Volume2, VolumeX,
   X, Maximize2, Minimize2, PenTool, Eraser, Trash2,
-  Trophy, Star, Award, Zap, HelpCircle, Eye, EyeOff,
-  Layers, ArrowRight, ArrowLeft, RefreshCw, Minus, Download
+  Trophy, Zap, Eye, EyeOff,
+  ArrowRight, ArrowLeft, RefreshCw, Minus, Download,
+  Settings, Palette, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useModuleDock } from '../context/ModuleDockContext';
 
@@ -93,6 +93,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const [revealedNumbers, setRevealedNumbers] = useState({});
   const autoPlayTimerRef = useRef(null);
 
+  // Mobil kontroller için ek state'ler
+  const [showMobileSettings, setShowMobileSettings] = useState(false);
+  const [showMobilePalette, setShowMobilePalette] = useState(false);
+
   // ==========================================
   // 2. SAYI DOĞRUSU STATE'LERİ
   // ==========================================
@@ -116,7 +120,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   // ==========================================
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [penColor, setPenColor] = useState('#facc15');
-  const [penSize, setPenSize] = useState(6);
+  const [penSize, setPenSize] = useState(5);
   const [isEraser, setIsEraser] = useState(false);
   const canvasRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -170,7 +174,6 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   // ==========================================
   // YÜZLÜK TABLO RİTMİK SAYMA İŞLEMLERİ
   // ==========================================
-  // Adım seçildiğinde otomatik boya
   const applyRhythmicHighlight = (step) => {
     setChartStep(step);
     setAutoCurrentNumber(0);
@@ -213,7 +216,6 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       setIsPlayingAuto(false);
       return;
     }
-    // Baştan veya mevcut konumdan başlat
     if (autoCurrentNumber >= 100 || autoCurrentNumber === 0) {
       setAutoCurrentNumber(0);
       setHighlightedCells({});
@@ -290,11 +292,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     for (let i = 0; i < length; i++) {
       sequence.push(start + i * step);
     }
-    // Rastgele bir elemanı boş bırak (0 ile 4 arası)
-    const blankIndex = Math.floor(Math.random() * (length - 1)) + 1; // 1-4 arası
+    const blankIndex = Math.floor(Math.random() * (length - 1)) + 1;
     const correctAnswer = sequence[blankIndex];
 
-    // Şıklar (1 doğru, 3 çeldirici)
     const options = new Set([correctAnswer]);
     while (options.size < 4) {
       const offset = (Math.floor(Math.random() * 5) - 2) * step;
@@ -342,7 +342,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   };
 
   // ==========================================
-  // CANVAS ÇİZİM İŞLEMLERİ
+  // CANVAS ÇİZİM İŞLEMLERİ (Responsive Scale Destekli)
   // ==========================================
   const getCanvasCoords = (e) => {
     const canvas = canvasRef.current;
@@ -354,9 +354,11 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     }
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     };
   };
 
@@ -436,57 +438,58 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* ========================================================= */}
         {/* 1. ÜST BAŞLIK & SEKME YÖNETİMİ                             */}
         {/* ========================================================= */}
-        <header className="flex items-center justify-between px-3 sm:px-5 py-2.5 bg-slate-850 border-b border-slate-800 gap-2 shrink-0">
-          {/* Sol: İkon & Sekmeler */}
+        <header className="flex items-center justify-between px-2.5 sm:px-5 py-2 sm:py-2.5 bg-slate-850 border-b border-slate-800 gap-2 shrink-0">
+          {/* Sol: İkon & Başlık / Sekmeler */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 text-lg shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 text-base sm:text-lg shrink-0">
               🔢
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1 truncate">
-                  <span>Ritmik Sayma & Sayı Doğrusu</span>
+                <h2 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1 truncate">
+                  <span className="hidden xs:inline">Ritmik Sayma & Sayı Doğrusu</span>
+                  <span className="xs:hidden">Ritmik Sayma</span>
                 </h2>
-                <span className="hidden xs:inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 shrink-0">
+                <span className="hidden md:inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 shrink-0">
                   MEB 1-3. Sınıf
                 </span>
               </div>
 
-              {/* Sekme Değiştirici */}
-              <div className="flex items-center gap-1 mt-0.5">
+              {/* Sekme Değiştirici (Mobilde swipeable / taşmayan kompakt yapı) */}
+              <div className="flex items-center gap-1 mt-0.5 overflow-x-auto no-scrollbar py-0.5">
                 <button
                   type="button"
                   onClick={() => setActiveTab('chart')}
-                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer ${
+                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
                     activeTab === 'chart'
                       ? 'bg-emerald-500 text-slate-950 shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  📊 100'lük Tablo
+                  📊 <span className="hidden xs:inline">100'lük </span>Tablo
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('line')}
-                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     activeTab === 'line'
                       ? 'bg-emerald-500 text-slate-950 shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  🐸 Sayı Doğrusu
+                  🐸 <span className="hidden xs:inline">Sayı </span>Doğrusu
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('practice')}
-                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     activeTab === 'practice'
                       ? 'bg-emerald-500 text-slate-950 shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  ⭐ Örüntü Oyunu
+                  ⭐ Örüntü<span className="hidden xs:inline"> Oyunu</span>
                 </button>
               </div>
             </div>
@@ -498,17 +501,17 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
             <button
               type="button"
               onClick={() => setSoundEnabled(v => !v)}
-              className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
               title={soundEnabled ? "Sesi Kapat" : "Sesi Aç"}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />}
             </button>
 
             {/* Çizim Katmanı Aç / Kapat */}
             <button
               type="button"
               onClick={() => setIsDrawingMode(v => !v)}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition cursor-pointer active:scale-95 ${
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center transition cursor-pointer active:scale-95 ${
                 isDrawingMode
                   ? 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
@@ -518,17 +521,17 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               <PenTool className="w-3.5 h-3.5" />
             </button>
 
-            {/* Simge Durumuna Küçült (Eksiksiz & Net Eksi İkonu) */}
+            {/* Simge Durumuna Küçült */}
             <button
               type="button"
               onClick={() => setWindowState('minimized')}
-              className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95"
               title="Simge Durumuna Küçült"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
-            {/* Büyüt / Normal Boyut */}
+            {/* Büyüt / Normal Boyut (Mobilde gizli) */}
             <button
               type="button"
               onClick={() => setWindowState(prev => prev === 'maximized' ? 'normal' : 'maximized')}
@@ -543,10 +546,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-xl bg-rose-500/20 text-red-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95 ml-0.5"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-rose-500/20 text-red-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition cursor-pointer active:scale-95 ml-0.5"
                 title="Kapat"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
           </div>
@@ -556,15 +559,15 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* ÇİZİM ARAÇ ÇUBUĞU (Aktifse görünür)                       */}
         {/* ========================================================= */}
         {isDrawingMode && (
-          <div className="shrink-0 bg-slate-950/95 border-b border-slate-800 px-3 py-1.5 flex items-center justify-between text-xs gap-2 z-30">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-amber-400">✏️ Çizim Modu:</span>
+          <div className="shrink-0 bg-slate-950/95 border-b border-slate-800 px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center justify-between text-xs gap-1.5 z-30">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-[10px] sm:text-[11px] font-bold text-amber-400">✏️ Çizim:</span>
               {['#facc15', '#38bdf8', '#10b981', '#f43f5e', '#ffffff'].map(c => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => { setPenColor(c); setIsEraser(false); }}
-                  className={`w-5 h-5 rounded-full border-2 transition ${
+                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 transition ${
                     penColor === c && !isEraser ? 'scale-110 border-white ring-2 ring-amber-400' : 'border-transparent opacity-80 hover:opacity-100'
                   }`}
                   style={{ backgroundColor: c }}
@@ -573,19 +576,19 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               <button
                 type="button"
                 onClick={() => setIsEraser(v => !v)}
-                className={`px-2 py-0.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-semibold flex items-center gap-1 transition ${
                   isEraser ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-300 hover:text-white'
                 }`}
               >
-                <Eraser className="w-3.5 h-3.5" /> Silgi
+                <Eraser className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Silgi
               </button>
             </div>
             <button
               type="button"
               onClick={clearDrawingCanvas}
-              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 transition flex items-center gap-1"
+              className="px-1.5 sm:px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 transition flex items-center gap-1 text-[10px] sm:text-xs"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Temizle
+              <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Temizle
             </button>
           </div>
         )}
@@ -595,8 +598,27 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* ========================================================= */}
         {activeTab === 'chart' && (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-            {/* Sol / Üst Kontrol Paneli */}
-            <div className="w-full md:w-72 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-3 sm:p-4 flex flex-col gap-3 shrink-0 overflow-y-auto">
+            {/* MOBİL: HIZLI ADIM SEÇİCİ ÜST BAR (md:hidden) */}
+            <div className="md:hidden shrink-0 bg-slate-900/95 border-b border-slate-800 px-2.5 py-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1">Adım:</span>
+              {RHYTHMIC_STEPS.map(item => (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => applyRhythmicHighlight(item.step)}
+                  className={`py-1 px-2 rounded-lg text-[11px] font-bold shrink-0 transition active:scale-95 ${
+                    chartStep === item.step
+                      ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold ring-1 ring-emerald-300'
+                      : 'bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* MASAÜSTÜ: SOL KONTROL PANELİ (hidden md:flex) */}
+            <div className="hidden md:flex w-72 bg-slate-900 border-r border-slate-800 p-4 flex-col gap-3 shrink-0 overflow-y-auto">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
                   Ritmik Sayma Adımı
@@ -737,8 +759,8 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               )}
             </div>
 
-            {/* Sağ: 10x10 Yüzlük Tablo Izgarası */}
-            <div className="flex-1 p-2 sm:p-4 md:p-6 overflow-auto flex items-center justify-center relative">
+            {/* MERKEZ: 10x10 YÜZLÜK TABLO IZGARASI (Mobilde tam merkezli ve geniş) */}
+            <div className="flex-1 p-1.5 xs:p-2 sm:p-4 md:p-6 overflow-hidden flex items-center justify-center relative">
               {/* Çizim Katmanı */}
               {isDrawingMode && (
                 <canvas
@@ -752,7 +774,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 />
               )}
 
-              <div className="w-full max-w-[620px] aspect-square grid grid-cols-10 gap-1 sm:gap-1.5 p-2 sm:p-3 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-2xl">
+              <div className="w-full max-w-[min(94vw,560px)] aspect-square grid grid-cols-10 gap-0.5 xs:gap-1 sm:gap-1.5 p-1.5 xs:p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-950/90 border border-slate-800 shadow-2xl">
                 {Array.from({ length: 100 }, (_, idx) => {
                   const num = idx + 1;
                   const colorKey = highlightedCells[num];
@@ -765,16 +787,16 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                       key={num}
                       type="button"
                       onClick={() => handleCellClick(num)}
-                      className={`relative aspect-square rounded-lg sm:rounded-xl font-mono font-bold text-xs sm:text-sm md:text-base flex items-center justify-center transition-all duration-150 cursor-pointer select-none active:scale-90 ${
+                      className={`relative aspect-square rounded xs:rounded-lg sm:rounded-xl font-mono font-bold text-[10px] xs:text-xs sm:text-sm md:text-base flex items-center justify-center transition-all duration-150 cursor-pointer select-none active:scale-90 ${
                         colorInfo
                           ? `${colorInfo.bg} ${colorInfo.text} shadow-md font-extrabold ${colorInfo.ring}`
                           : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800/80'
                       } ${
-                        isCurrentAuto ? 'ring-4 ring-white scale-105 z-10 animate-bounce' : ''
+                        isCurrentAuto ? 'ring-2 sm:ring-4 ring-white scale-105 z-10 animate-bounce' : ''
                       }`}
                     >
                       {isHidden ? (
-                        <span className="text-slate-600 text-xs sm:text-sm">?</span>
+                        <span className="text-slate-600 text-[10px] sm:text-xs">?</span>
                       ) : (
                         <span>{num}</span>
                       )}
@@ -783,6 +805,181 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 })}
               </div>
             </div>
+
+            {/* MOBİL: ALT HIZLI ARAÇ ÇUBUĞU (md:hidden) */}
+            <div className="md:hidden shrink-0 bg-slate-900 border-t border-slate-800 p-2 flex items-center justify-between gap-1.5 z-30">
+              {/* Otomatik Oynat / Duraklat Butonu */}
+              <button
+                type="button"
+                onClick={handleToggleAutoPlay}
+                className={`flex-1 py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                  isPlayingAuto
+                    ? 'bg-amber-500 text-slate-950 animate-pulse'
+                    : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                }`}
+              >
+                {isPlayingAuto ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                <span className="truncate">{isPlayingAuto ? 'Durdur' : 'Otomatik Say'}</span>
+                {autoCurrentNumber > 0 && <span className="font-mono text-[10px] opacity-80">({autoCurrentNumber})</span>}
+              </button>
+
+              {/* Tabloyu Sıfırla */}
+              <button
+                type="button"
+                onClick={handleResetChart}
+                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 shrink-0"
+                title="Sıfırla"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+
+              {/* Renk Seçici Popover Tetikleyici */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobilePalette(v => !v);
+                  setShowMobileSettings(false);
+                }}
+                className={`p-2 rounded-xl flex items-center gap-1 transition active:scale-95 shrink-0 ${
+                  showMobilePalette ? 'bg-slate-700 ring-1 ring-emerald-400' : 'bg-slate-800 text-slate-300'
+                }`}
+                title="Renk Paleti"
+              >
+                <div className={`w-3.5 h-3.5 rounded-full ${HIGHLIGHT_COLORS.find(c => c.id === selectedPaintColor)?.bg || 'bg-amber-400'}`} />
+                <Palette className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Ek Ayarlar & Bulmaca Menüsü Tetikleyici */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileSettings(v => !v);
+                  setShowMobilePalette(false);
+                }}
+                className={`p-2 rounded-xl transition active:scale-95 shrink-0 ${
+                  showMobileSettings || hideNumbersMode ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-800 text-slate-300'
+                }`}
+                title="Ayarlar & Bulmaca"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* MOBİL: RENK SEÇİCİ BALONU */}
+            <AnimatePresence>
+              {showMobilePalette && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="md:hidden absolute bottom-14 left-2 right-2 bg-slate-950/95 border border-slate-800 rounded-2xl p-2.5 z-40 shadow-2xl flex items-center justify-around gap-2 backdrop-blur-md"
+                >
+                  <span className="text-[11px] font-bold text-slate-400">Renk:</span>
+                  {HIGHLIGHT_COLORS.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPaintColor(c.id);
+                        setShowMobilePalette(false);
+                      }}
+                      className={`w-7 h-7 rounded-xl ${c.bg} transition transform active:scale-90 flex items-center justify-center ${
+                        selectedPaintColor === c.id ? 'ring-2 ring-white scale-110 shadow-lg' : 'opacity-70 hover:opacity-100'
+                      }`}
+                      title={c.name}
+                    >
+                      {selectedPaintColor === c.id && <span className="text-xs">✓</span>}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* MOBİL: AYARLAR VE BULMACA ÇEKMECESİ */}
+            <AnimatePresence>
+              {showMobileSettings && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="md:hidden absolute bottom-14 left-2 right-2 bg-slate-950/98 border border-slate-800 rounded-2xl p-3 z-40 shadow-2xl space-y-3 backdrop-blur-md"
+                >
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-800">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Settings className="w-3.5 h-3.5 text-emerald-400" /> Tablo Ayarları
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowMobileSettings(false)}
+                      className="text-slate-400 hover:text-white p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Hız */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-semibold">Oynatma Hızı:</span>
+                    <div className="flex items-center gap-1">
+                      {[
+                        { label: 'Yavaş', ms: 750 },
+                        { label: 'Normal', ms: 450 },
+                        { label: 'Hızlı', ms: 220 }
+                      ].map(s => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          onClick={() => setPlaybackSpeed(s.ms)}
+                          className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${
+                            playbackSpeed === s.ms ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bulmaca Modu */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHideNumbersMode(v => !v);
+                      setRevealedNumbers({});
+                      setShowMobileSettings(false);
+                    }}
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 ${
+                      hideNumbersMode
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-slate-800 text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {hideNumbersMode ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    <span>{hideNumbersMode ? 'Sayıları Görünür Yap' : 'Sayıları Gizle (Bulmaca Modu)'}</span>
+                  </button>
+
+                  {/* Tahtaya Aktar */}
+                  {onAddToCanvas && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const marked = Object.keys(highlightedCells).sort((a,b) => a - b).join(', ');
+                        onAddToCanvas({
+                          title: `100'lük Tablo (${chartStep}'şer Ritmik Sayma)`,
+                          text: `Ritmik Sayma Adımı: ${chartStep}'şer\nVurgulanan Sayılar: ${marked || '1-100'}`,
+                          fontSize: 24
+                        });
+                        setShowMobileSettings(false);
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 transition border border-emerald-500/20 active:scale-95"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Akıllı Tahtaya Aktar</span>
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -790,62 +987,66 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* 3. SEKME 2: DİNAMİK ZIPLAYAN SAYI DOĞRUSU                  */}
         {/* ========================================================= */}
         {activeTab === 'line' && (
-          <div className="flex-1 flex flex-col p-3 sm:p-6 overflow-hidden justify-between">
-            {/* Üst Ayar Çubuğu */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-850 p-3 rounded-2xl border border-slate-800 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Aralık:</span>
-                {[20, 50, 100].map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => { setLineRange(r); handleResetLine(); }}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
-                      lineRange === r ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    0 - {r}
-                  </button>
-                ))}
+          <div className="flex-1 flex flex-col p-2.5 sm:p-6 overflow-hidden justify-between">
+            {/* Üst Ayar Çubuğu (Mobilde 2 temiz satır halinde) */}
+            <div className="bg-slate-850 p-2.5 sm:p-3 rounded-2xl border border-slate-800 shrink-0 space-y-2">
+              <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+                {/* Sayı Aralığı */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-400">Aralık:</span>
+                  {[20, 50, 100].map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => { setLineRange(r); handleResetLine(); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition active:scale-95 ${
+                        lineRange === r ? 'bg-emerald-500 text-slate-950 shadow-xs' : 'bg-slate-800 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      0-{r}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Maskot Seçici */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {MASCOTS.map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSelectedMascot(m.id)}
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-base flex items-center justify-center transition active:scale-95 ${
+                        selectedMascot === m.id ? 'bg-emerald-500/20 border border-emerald-400 scale-105' : 'opacity-60 hover:opacity-100'
+                      }`}
+                      title={m.name}
+                    >
+                      {m.icon}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Zıplama Adımı:</span>
+              {/* Zıplama Adımı */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1.5 border-t border-slate-800/80">
+                <span className="text-[11px] sm:text-xs font-bold text-slate-400 shrink-0">Zıplama:</span>
                 {[1, 2, 3, 4, 5, 10].map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setLineStep(s)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
-                      lineStep === s ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300/40' : 'bg-slate-800 text-slate-300 hover:text-white'
+                    className={`px-2.5 py-0.5 rounded-lg text-xs font-bold shrink-0 transition active:scale-95 ${
+                      lineStep === s ? 'bg-amber-400 text-slate-950 ring-1 ring-amber-300/40' : 'bg-slate-800 text-slate-300 hover:text-white'
                     }`}
                   >
                     +{s}
                   </button>
                 ))}
               </div>
-
-              {/* Maskot Seçici */}
-              <div className="flex items-center gap-1.5">
-                {MASCOTS.map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setSelectedMascot(m.id)}
-                    className={`w-8 h-8 rounded-xl text-base flex items-center justify-center transition ${
-                      selectedMascot === m.id ? 'bg-emerald-500/20 border border-emerald-400 scale-105' : 'opacity-60 hover:opacity-100'
-                    }`}
-                    title={m.name}
-                  >
-                    {m.icon}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Orta: Sayı Doğrusu Tuvali ve Zıplayan Maskot */}
-            <div className="flex-1 my-6 flex flex-col justify-center items-center relative overflow-x-auto px-4 scrollbar-none">
-              <div className="w-full min-w-[600px] max-w-4xl relative py-12">
+            <div className="flex-1 my-3 sm:my-6 flex flex-col justify-center items-center relative overflow-x-auto px-2 sm:px-4 scrollbar-none">
+              <div className={`w-full ${lineRange === 20 ? 'min-w-0 max-w-3xl' : 'min-w-[540px] max-w-4xl'} relative py-10 sm:py-12`}>
                 {/* Zıplayan Maskot */}
                 <motion.div
                   animate={{
@@ -855,10 +1056,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   transition={{ type: 'spring', stiffness: 350, damping: 20 }}
                   className="absolute -top-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-10"
                 >
-                  <div className="text-4xl filter drop-shadow-lg">
+                  <div className="text-3xl sm:text-4xl filter drop-shadow-lg">
                     {MASCOTS.find(m => m.id === selectedMascot)?.icon || '🐸'}
                   </div>
-                  <div className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold font-mono text-xs shadow-md mt-1">
+                  <div className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold font-mono text-[10px] sm:text-xs shadow-md mt-0.5">
                     {mascotPos}
                   </div>
                 </motion.div>
@@ -885,12 +1086,12 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                       >
                         <div
                           className={`w-0.5 transition-all ${
-                            isMajor ? 'h-6 -top-3' : 'h-3 -top-1.5'
+                            isMajor ? 'h-5 sm:h-6 -top-2.5 sm:-top-3' : 'h-2.5 sm:h-3 -top-1.5'
                           } ${isPassed ? 'bg-emerald-400' : 'bg-slate-600'}`}
                         />
                         {shouldShowLabel && (
                           <span
-                            className={`mt-4 font-mono font-bold text-xs select-none ${
+                            className={`mt-3 sm:mt-4 font-mono font-bold text-[10px] sm:text-xs select-none ${
                               i === mascotPos
                                 ? 'text-emerald-400 scale-125'
                                 : isPassed
@@ -908,12 +1109,12 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               </div>
 
               {/* Zıplama Geçmişi İpuçları */}
-              <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-2">
-                <span className="text-xs text-slate-400 font-semibold">Adımlar:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1.5 no-scrollbar">
+                <span className="text-[10px] sm:text-xs text-slate-400 font-semibold shrink-0">Adımlar:</span>
                 {jumpHistory.map((stepVal, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-xs font-bold"
+                    className="px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold shrink-0"
                   >
                     {stepVal}
                   </span>
@@ -921,35 +1122,35 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
               </div>
             </div>
 
-            {/* Alt Kontrol Butonları */}
-            <div className="flex items-center justify-center gap-3 shrink-0">
+            {/* Alt Kontrol Butonları (Mobilde taşmayan, dengeli flex butonlar) */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3 shrink-0 pt-1">
               <button
                 type="button"
                 onClick={handleJumpBackward}
                 disabled={mascotPos - lineStep < 0}
-                className="py-3 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-md"
+                className="flex-1 max-w-[170px] py-2.5 sm:py-3 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
               >
-                <ArrowLeft className="w-5 h-5 text-amber-400" />
-                <span>Geri Zıpla (-{lineStep})</span>
+                <ArrowLeft className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="truncate">Geri (-{lineStep})</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleResetLine}
-                className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer"
+                className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer shrink-0"
                 title="Sıfırla"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <button
                 type="button"
                 onClick={handleJumpForward}
                 disabled={mascotPos + lineStep > lineRange}
-                className="py-3 px-8 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 text-slate-950 font-extrabold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20"
+                className="flex-1 max-w-[200px] py-2.5 sm:py-3 px-3 sm:px-8 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-40 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20"
               >
-                <span>İleri Zıpla (+{lineStep})</span>
-                <ArrowRight className="w-5 h-5 text-slate-950" />
+                <span className="truncate">İleri (+{lineStep})</span>
+                <ArrowRight className="w-4 h-4 text-slate-950 shrink-0" />
               </button>
             </div>
           </div>
@@ -959,41 +1160,41 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
         {/* 4. SEKME 3: ÖRÜNTÜYÜ TAMAMLA PRATİK OYUNU                 */}
         {/* ========================================================= */}
         {activeTab === 'practice' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 overflow-y-auto">
+          <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-8 overflow-y-auto">
             {practiceQuestion && (
-              <div className="w-full max-w-xl bg-slate-850 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl text-center space-y-6">
+              <div className="w-full max-w-xl bg-slate-850 p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-2xl text-center space-y-4 sm:space-y-6">
                 {/* Skor & Seri Rozeti */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs">
-                    <Trophy className="w-4 h-4" />
+                  <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs">
+                    <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>Puan: {practiceScore}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs">
-                    <Zap className="w-4 h-4" />
+                  <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs">
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>{practiceStreak}x Seri</span>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  <h3 className="text-sm sm:text-lg font-bold text-white tracking-tight">
                     Soru İşareti Yerine Hangi Sayı Gelmelidir?
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-[11px] sm:text-xs text-slate-400 mt-1">
                     Örüntü kuralını keşfet ve doğru sayıyı seç!
                   </p>
                 </div>
 
-                {/* Örüntü Dizisi */}
-                <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                {/* Örüntü Dizisi (Mobilde tek sırada taşmadan sığar) */}
+                <div className="flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full py-1">
                   {practiceQuestion.sequence.map((num, idx) => {
                     const isBlank = idx === practiceQuestion.blankIndex;
                     return (
                       <div
                         key={idx}
-                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center font-mono font-extrabold text-base sm:text-xl shadow-lg transition-all ${
+                        className={`w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center font-mono font-extrabold text-sm xs:text-base sm:text-xl shadow-lg transition-all shrink-0 ${
                           isBlank
-                            ? 'bg-amber-400 text-slate-950 ring-4 ring-amber-300/40 animate-pulse text-2xl'
+                            ? 'bg-amber-400 text-slate-950 ring-2 sm:ring-4 ring-amber-300/40 animate-pulse text-base xs:text-lg sm:text-2xl'
                             : 'bg-slate-900 border border-slate-700 text-white'
                         }`}
                       >
@@ -1006,7 +1207,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 {/* Geri Bildirim Mesajı */}
                 {practiceFeedback && (
                   <div
-                    className={`py-2 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${
+                    className={`py-2 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 ${
                       practiceFeedback === 'correct'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
@@ -1017,25 +1218,25 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                 )}
 
                 {/* Şıklar */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
                   {practiceQuestion.options.map((opt, i) => (
                     <button
                       key={i}
                       type="button"
                       disabled={!!practiceFeedback}
                       onClick={() => handleAnswerPractice(opt)}
-                      className="py-4 px-6 rounded-2xl bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-mono font-extrabold text-lg sm:text-xl text-white transition-all shadow-md active:scale-95 cursor-pointer border border-slate-700 hover:border-emerald-400"
+                      className="py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-mono font-extrabold text-base sm:text-xl text-white transition-all shadow-md active:scale-95 cursor-pointer border border-slate-700 hover:border-emerald-400"
                     >
                       {opt}
                     </button>
                   ))}
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-1">
                   <button
                     type="button"
                     onClick={generateNewPracticeQuestion}
-                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 mx-auto transition"
+                    className="text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 mx-auto transition active:scale-95"
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Farklı Soruya Geç
                   </button>

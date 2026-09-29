@@ -42,6 +42,15 @@ function playWrongSound() {
 }
 
 // ==========================================
+// HIZ SEÇENEKLERİ & SENKRONİZE SES TEMPOSU
+// ==========================================
+const SPEED_MODES = [
+  { id: 'slow', label: 'Yavaş', rate: 0.88, pause: 380, interval: 850 },
+  { id: 'normal', label: 'Normal', rate: 1.15, pause: 190, interval: 480 },
+  { id: 'fast', label: 'Hızlı', rate: 1.5, pause: 90, interval: 260 }
+];
+
+// ==========================================
 // GERÇEKÇİ TÜRKÇE SES İLE SAYILARI OKUMA (0-100)
 // ==========================================
 let currentNumberAudio = null;
@@ -60,7 +69,20 @@ function getTurkishNumberName(n) {
   return `${TURKISH_NUMBER_WORDS[t]} ${TURKISH_NUMBER_WORDS[o]}`;
 }
 
-function speakWithWebSpeechFallback(number, onEnd) {
+function stopNumberVoice() {
+  if (currentNumberAudio) {
+    try {
+      currentNumberAudio.pause();
+      currentNumberAudio.currentTime = 0;
+    } catch (_) {}
+    currentNumberAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
+}
+
+function speakWithWebSpeechFallback(number, rate = 1.0, onEnd) {
   if (!('speechSynthesis' in window)) {
     if (onEnd) onEnd();
     return;
@@ -79,58 +101,70 @@ function speakWithWebSpeechFallback(number, onEnd) {
     ) || voices.find(v => v.lang === 'tr-TR' || v.lang === 'tr');
 
     if (trVoice) utterance.voice = trVoice;
-    utterance.rate = 1.0;
+    utterance.rate = rate; // Hıza göre WebSpeech temposu
     utterance.pitch = 1.0;
 
-    utterance.onend = () => { if (onEnd) onEnd(); };
-    utterance.onerror = () => { if (onEnd) onEnd(); };
+    let ended = false;
+    const safeEnd = () => {
+      if (ended) return;
+      ended = true;
+      if (onEnd) onEnd();
+    };
+
+    utterance.onend = safeEnd;
+    utterance.onerror = safeEnd;
     window.speechSynthesis.speak(utterance);
   } catch (_) {
     if (onEnd) onEnd();
   }
 }
 
-function playNumberVoice(number, onStart, onEnd) {
-  if (number < 0 || number > 100) return;
+function playNumberVoice(number, rate = 1.0, onStart, onEnd) {
+  if (number < 0 || number > 100) {
+    if (onEnd) onEnd();
+    return;
+  }
 
-  if (currentNumberAudio) {
-    try {
-      currentNumberAudio.pause();
-      currentNumberAudio.currentTime = 0;
-    } catch (_) {}
-    currentNumberAudio = null;
-  }
-  if ('speechSynthesis' in window) {
-    try { window.speechSynthesis.cancel(); } catch (_) {}
-  }
+  stopNumberVoice();
 
   if (onStart) onStart();
+
+  let ended = false;
+  let safetyTimer = null;
+  const safeEnd = () => {
+    if (ended) return;
+    ended = true;
+    if (safetyTimer) clearTimeout(safetyTimer);
+    currentNumberAudio = null;
+    if (onEnd) onEnd();
+  };
+
+  // Güvenlik zamanlayıcısı (ses dosyasında beklenmedik kilitlenme olursa sayımın takılmaması için)
+  safetyTimer = setTimeout(safeEnd, Math.max(1600, Math.round(2500 / rate)));
 
   const localAudioUrl = `/audio/numbers/${number}.mp3`;
   try {
     const audio = new Audio(localAudioUrl);
     audio.volume = 1.0;
+    audio.playbackRate = rate; // Seçilen hıza denk gerçek seslendirme temposu
     currentNumberAudio = audio;
 
-    audio.onended = () => {
-      currentNumberAudio = null;
-      if (onEnd) onEnd();
-    };
-
+    audio.onended = safeEnd;
     audio.onerror = () => {
-      currentNumberAudio = null;
-      speakWithWebSpeechFallback(number, onEnd);
+      if (safetyTimer) clearTimeout(safetyTimer);
+      speakWithWebSpeechFallback(number, rate, onEnd);
     };
 
     const promise = audio.play();
     if (promise !== undefined) {
       promise.catch(() => {
-        currentNumberAudio = null;
-        speakWithWebSpeechFallback(number, onEnd);
+        if (safetyTimer) clearTimeout(safetyTimer);
+        speakWithWebSpeechFallback(number, rate, onEnd);
       });
     }
   } catch (_) {
-    speakWithWebSpeechFallback(number, onEnd);
+    if (safetyTimer) clearTimeout(safetyTimer);
+    speakWithWebSpeechFallback(number, rate, onEnd);
   }
 }
 
@@ -181,10 +215,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const [selectedPaintColor, setSelectedPaintColor] = useState('amber');
   const [isPlayingAuto, setIsPlayingAuto] = useState(false);
   const [autoCurrentNumber, setAutoCurrentNumber] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(600); // ms (doğal sesli okuma için ideal)
+  const [speedId, setSpeedId] = useState('normal'); // 'slow' | 'normal' | 'fast'
   const [hideNumbersMode, setHideNumbersMode] = useState(false);
   const [revealedNumbers, setRevealedNumbers] = useState({});
-  const autoPlayTimerRef = useRef(null);
 
   // Mobil kontroller için ek state'ler
   const [showMobileSettings, setShowMobileSettings] = useState(false);
@@ -226,6 +259,24 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const [speakNumbers, setSpeakNumbers] = useState(true);
 
   // ==========================================
+  // REFLER: DÖNGÜ VE EVENT-DRIVEN SAYIM
+  // ==========================================
+  const isAutoPlayingRef = useRef(false);
+  const autoTimeoutRef = useRef(null);
+
+  const speedIdRef = useRef(speedId);
+  const chartStepRef = useRef(chartStep);
+  const speakNumbersRef = useRef(speakNumbers);
+  const soundEnabledRef = useRef(soundEnabled);
+  const selectedPaintColorRef = useRef(selectedPaintColor);
+
+  useEffect(() => { speedIdRef.current = speedId; }, [speedId]);
+  useEffect(() => { chartStepRef.current = chartStep; }, [chartStep]);
+  useEffect(() => { speakNumbersRef.current = speakNumbers; }, [speakNumbers]);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+  useEffect(() => { selectedPaintColorRef.current = selectedPaintColor; }, [selectedPaintColor]);
+
+  // ==========================================
   // MODÜL DOCK ENTEGRASYONU
   // ==========================================
   const { registerModule, unregisterModule } = useModuleDock();
@@ -264,6 +315,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   useEffect(() => {
     return () => {
       unregisterModule('ritmik-sayma-atolyesi');
+      isAutoPlayingRef.current = false;
+      if (autoTimeoutRef.current) clearTimeout(autoTimeoutRef.current);
+      stopNumberVoice();
     };
   }, [unregisterModule]);
 
@@ -273,8 +327,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
   const applyRhythmicHighlight = (step) => {
     setChartStep(step);
     setAutoCurrentNumber(0);
+    isAutoPlayingRef.current = false;
     setIsPlayingAuto(false);
-    clearInterval(autoPlayTimerRef.current);
+    if (autoTimeoutRef.current) clearTimeout(autoTimeoutRef.current);
+    stopNumberVoice();
 
     const newHighlights = {};
     for (let i = step; i <= 100; i += step) {
@@ -282,65 +338,93 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     }
     setHighlightedCells(newHighlights);
 
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
     if (speakNumbers) {
-      playNumberVoice(step);
+      playNumberVoice(step, currentSpeedCfg.rate);
     } else if (soundEnabled) {
       playSuccessSound();
     }
   };
 
-  // Otomatik Oynatma Döngüsü
-  useEffect(() => {
-    if (isPlayingAuto) {
-      autoPlayTimerRef.current = setInterval(() => {
-        setAutoCurrentNumber(prev => {
-          const next = prev + chartStep;
-          if (next > 100) {
-            setIsPlayingAuto(false);
-            clearInterval(autoPlayTimerRef.current);
-            if (soundEnabled) playSuccessSound();
-            return 100;
-          }
-          if (speakNumbers) {
-            playNumberVoice(next);
-          } else if (soundEnabled) {
-            playPopSound(next / chartStep);
-          }
-          setHighlightedCells(h => ({ ...h, [next]: selectedPaintColor }));
-          return next;
-        });
-      }, playbackSpeed);
-    } else {
-      clearInterval(autoPlayTimerRef.current);
+  // ==========================================
+  // EVENT-DRIVEN OTOMATİK SAYIM DÖNGÜSÜ
+  // (Seslendirme bitmeden ASLA bir sonrakine geçmez!)
+  // ==========================================
+  const runAutoStep = (currentNumber) => {
+    if (!isAutoPlayingRef.current) return;
+
+    const step = chartStepRef.current;
+    const nextNumber = currentNumber + step;
+
+    if (nextNumber > 100) {
+      isAutoPlayingRef.current = false;
+      setIsPlayingAuto(false);
+      setAutoCurrentNumber(100);
+      if (soundEnabledRef.current) playSuccessSound();
+      return;
     }
-    return () => clearInterval(autoPlayTimerRef.current);
-  }, [isPlayingAuto, chartStep, playbackSpeed, selectedPaintColor, soundEnabled, speakNumbers]);
+
+    setAutoCurrentNumber(nextNumber);
+    setHighlightedCells(prev => ({ ...prev, [nextNumber]: selectedPaintColorRef.current }));
+
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedIdRef.current) || SPEED_MODES[1];
+
+    if (speakNumbersRef.current) {
+      // 1. SESLİ OKUMA: Seçilen hıza denk ses temposuyla okur, SES BİTİNCE callback çalışır!
+      playNumberVoice(nextNumber, currentSpeedCfg.rate, null, () => {
+        if (!isAutoPlayingRef.current) return;
+        // Ses bitti! Belirlenen nefes payı kadar bekleyip sonraki adıma geç
+        autoTimeoutRef.current = setTimeout(() => {
+          runAutoStep(nextNumber);
+        }, currentSpeedCfg.pause);
+      });
+    } else {
+      // 2. SESLİ OKUMA KAPALIYSA: Standart ses efekti & hız aralığı
+      if (soundEnabledRef.current) playPopSound(nextNumber / step);
+      autoTimeoutRef.current = setTimeout(() => {
+        runAutoStep(nextNumber);
+      }, currentSpeedCfg.interval);
+    }
+  };
 
   const handleToggleAutoPlay = () => {
     if (isPlayingAuto) {
+      isAutoPlayingRef.current = false;
       setIsPlayingAuto(false);
+      if (autoTimeoutRef.current) clearTimeout(autoTimeoutRef.current);
+      stopNumberVoice();
       return;
     }
-    if (autoCurrentNumber >= 100 || autoCurrentNumber === 0) {
+
+    let startNum = autoCurrentNumber;
+    if (startNum >= 100 || startNum === 0) {
+      startNum = 0;
       setAutoCurrentNumber(0);
       setHighlightedCells({});
     }
+
+    isAutoPlayingRef.current = true;
     setIsPlayingAuto(true);
+    runAutoStep(startNum);
   };
 
   const handleResetChart = () => {
+    isAutoPlayingRef.current = false;
     setIsPlayingAuto(false);
-    clearInterval(autoPlayTimerRef.current);
+    if (autoTimeoutRef.current) clearTimeout(autoTimeoutRef.current);
+    stopNumberVoice();
     setAutoCurrentNumber(0);
     setHighlightedCells({});
     setRevealedNumbers({});
   };
 
   const handleCellClick = (num) => {
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
+
     if (hideNumbersMode && !revealedNumbers[num]) {
       setRevealedNumbers(prev => ({ ...prev, [num]: true }));
       if (speakNumbers) {
-        playNumberVoice(num);
+        playNumberVoice(num, currentSpeedCfg.rate);
       } else if (soundEnabled) {
         playTone(440, 'triangle', 0.1);
       }
@@ -358,7 +442,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     });
 
     if (speakNumbers) {
-      playNumberVoice(num);
+      playNumberVoice(num, currentSpeedCfg.rate);
     } else if (soundEnabled) {
       playTone(300 + (num % 20) * 15, 'sine', 0.08);
     }
@@ -373,8 +457,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     const nextPos = mascotPos + lineStep;
     setMascotPos(nextPos);
     setJumpHistory(prev => [...prev, nextPos]);
+
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
     if (speakNumbers) {
-      playNumberVoice(nextPos);
+      playNumberVoice(nextPos, currentSpeedCfg.rate);
     } else if (soundEnabled) {
       playTone(350 + (nextPos % 30) * 15, 'sine', 0.15);
     }
@@ -387,8 +473,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     const nextPos = mascotPos - lineStep;
     setMascotPos(nextPos);
     setJumpHistory(prev => [...prev, nextPos]);
+
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
     if (speakNumbers) {
-      playNumberVoice(nextPos);
+      playNumberVoice(nextPos, currentSpeedCfg.rate);
     } else if (soundEnabled) {
       playTone(280 + (nextPos % 30) * 15, 'triangle', 0.15);
     }
@@ -399,8 +487,9 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
     setMascotPos(0);
     setJumpHistory([0]);
     setIsJumping(false);
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
     if (speakNumbers) {
-      playNumberVoice(0);
+      playNumberVoice(0, currentSpeedCfg.rate);
     }
   };
 
@@ -448,12 +537,14 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
 
   const handleAnswerPractice = (opt) => {
     if (!practiceQuestion || practiceFeedback) return;
+    const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
+
     if (opt === practiceQuestion.correctAnswer) {
       setPracticeFeedback('correct');
       setPracticeScore(s => s + 10);
       setPracticeStreak(st => st + 1);
       if (speakNumbers) {
-        playNumberVoice(opt, null, () => {
+        playNumberVoice(opt, currentSpeedCfg.rate, null, () => {
           if (soundEnabled) playSuccessSound();
         });
       } else if (soundEnabled) {
@@ -466,7 +557,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
       setPracticeFeedback('wrong');
       setPracticeStreak(0);
       if (speakNumbers) {
-        playNumberVoice(opt);
+        playNumberVoice(opt, currentSpeedCfg.rate);
         setTimeout(() => {
           if (soundEnabled) playWrongSound();
         }, 400);
@@ -816,7 +907,7 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  {speakNumbers ? '✅ Gerçekçi Türkçe telaffuz aktif (0-100)' : '❌ Sessiz sayma'}
+                  {speakNumbers ? '✅ Ses bitmeden sonrakine geçmez, hız senkronludur' : '❌ Sessiz sayma'}
                 </p>
               </div>
 
@@ -853,21 +944,17 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                   </button>
                 </div>
 
-                {/* Hız Seçimi */}
+                {/* Hız Seçimi (Senkronize Ses & Sayım Hızı) */}
                 <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-[11px] text-slate-400">
                   <span>Hız:</span>
                   <div className="flex items-center gap-1">
-                    {[
-                      { label: 'Yavaş', ms: 900 },
-                      { label: 'Normal', ms: 600 },
-                      { label: 'Hızlı', ms: 380 }
-                    ].map(s => (
+                    {SPEED_MODES.map(s => (
                       <button
-                        key={s.label}
+                        key={s.id}
                         type="button"
-                        onClick={() => setPlaybackSpeed(s.ms)}
+                        onClick={() => setSpeedId(s.id)}
                         className={`px-2 py-0.5 rounded-md font-semibold transition ${
-                          playbackSpeed === s.ms ? 'bg-slate-700 text-emerald-300' : 'hover:text-white'
+                          speedId === s.id ? 'bg-slate-700 text-emerald-300 ring-1 ring-emerald-400/40' : 'hover:text-white'
                         }`}
                       >
                         {s.label}
@@ -1126,19 +1213,15 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
 
                   {/* Hız */}
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-semibold">Oynatma Hızı:</span>
+                    <span className="text-slate-400 font-semibold">Oynatma & Ses Hızı:</span>
                     <div className="flex items-center gap-1">
-                      {[
-                        { label: 'Yavaş', ms: 900 },
-                        { label: 'Normal', ms: 600 },
-                        { label: 'Hızlı', ms: 380 }
-                      ].map(s => (
+                      {SPEED_MODES.map(s => (
                         <button
-                          key={s.label}
+                          key={s.id}
                           type="button"
-                          onClick={() => setPlaybackSpeed(s.ms)}
-                          className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${
-                            playbackSpeed === s.ms ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'
+                          onClick={() => setSpeedId(s.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                            speedId === s.id ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'
                           }`}
                         >
                           {s.label}
@@ -1337,9 +1420,10 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                     key={idx}
                     type="button"
                     onClick={() => {
-                      if (speakNumbers) playNumberVoice(stepVal);
+                      const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
+                      if (speakNumbers) playNumberVoice(stepVal, currentSpeedCfg.rate);
                     }}
-                    className="px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold shrink-0 hover:bg-slate-700 transition"
+                    className="px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-[10px] sm:text-xs font-bold shrink-0 hover:bg-slate-700 transition cursor-pointer"
                   >
                     {stepVal}
                   </button>
@@ -1430,7 +1514,8 @@ export default function RhythmicCountingScreen({ isOpen = true, onClose, onAddTo
                         key={idx}
                         type="button"
                         onClick={() => {
-                          if (!isBlank && speakNumbers) playNumberVoice(num);
+                          const currentSpeedCfg = SPEED_MODES.find(m => m.id === speedId) || SPEED_MODES[1];
+                          if (!isBlank && speakNumbers) playNumberVoice(num, currentSpeedCfg.rate);
                         }}
                         className={`w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center font-mono font-extrabold text-sm xs:text-base sm:text-xl shadow-lg transition-all shrink-0 cursor-pointer ${
                           isBlank

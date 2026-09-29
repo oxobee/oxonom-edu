@@ -50,8 +50,9 @@ const INITIAL_READING_MODULE = {
   videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk',
   videoEmbedCode: '<iframe width="100%" height="100%" src="https://www.youtube.com/embed/jfKfPfyJRdk" title="1 Dk Okuma Modülü Tanıtımı" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>',
   badgeText: 'İlkokul & Temel',
-  category: 'Tahta Araçları',
-  targetGrades: ['1', '2', '3', '4', '5', '8'],
+  category: 'Okuma & Hızlı Okuma',
+  subject: 'Türkçe',
+  targetGrades: ['1', '2', '3', '4'],
   features: [
     '60 Saniye Dinamik Geri Sayım',
     'MEB Dik Temel Harf Desteği',
@@ -84,8 +85,9 @@ const INITIAL_LETTER_WRITING_MODULE = {
   videoUrl: '',
   videoEmbedCode: '',
   badgeText: '1. Sınıf Temel',
-  category: 'Okuma & Yazma',
-  targetGrades: ['1', '2', '3', '4', '5', '8'],
+  category: 'Yazı & Çizgi Çalışması',
+  subject: 'Türkçe',
+  targetGrades: ['1'],
   features: [
     'MEB Kılavuz Çizgili Satır',
     'Yazılış Yönü Okları (1, 2, 3)',
@@ -95,6 +97,96 @@ const INITIAL_LETTER_WRITING_MODULE = {
   ],
   isActive: true,
   order: 2
+};
+
+const INITIAL_MATH_MODULE = {
+  key: 'ritmik-sayma-atolyesi',
+  title: 'Ritmik Sayma & Sayı Doğrusu Atölyesi',
+  shortDescription: '1, 2 ve 3. sınıflar için eğlenceli ritmik sayma, yüzlük tablo ve dinamik sayı doğrusu aracı.',
+  longDescription: `Ritmik Sayma & Sayı Doğrusu Atölyesi, ilkokul öğrencilerinin temel matematik becerilerini, ileri-geri ritmik saymayı (1'er, 2'şer, 3'er, 5'er, 10'ar), yüzlük tabloda sayı örüntülerini ve sayı doğrusu üzerindeki hareketleri görsel ve interaktif olarak keşfetmelerini sağlar.
+
+### 🌟 Öne Çıkan Pedagojik Özellikler:
+- **Yüzlük Tabloda İnteraktif Boyama:** Sayı örüntülerini renkli hücrelerle keşfetme.
+- **İleri ve Geri Ritmik Sayma:** Adım aralığı seçerek dinamik sesli sayma.
+- **Dinamik Sayı Doğrusu:** Sayıların aralıklarını zihinde somutlaştırma.`,
+  coverImage: 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?auto=format&fit=crop&w=1200&h=675&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?auto=format&fit=crop&w=1200&h=675&q=80'
+  ],
+  videoUrl: '',
+  videoEmbedCode: '',
+  badgeText: 'Temel Matematik',
+  category: 'Ritmik Sayma & Sayılar',
+  subject: 'Matematik',
+  targetGrades: ['1', '2', '3'],
+  features: [
+    'Yüzlük Tabloda İnteraktif Boyama',
+    'İleri ve Geri Ritmik Sayma',
+    'Dinamik Sayı Doğrusu',
+    'Sesli Sayı Rehberi'
+  ],
+  isActive: true,
+  order: 3
+};
+
+const INITIAL_SCIENCE_MODULE = {
+  key: 'gunes-sistemi-atolyesi',
+  title: 'Güneş Sistemi & Gezegenler Keşif Atölyesi',
+  shortDescription: '3, 4 ve 5. sınıflar için gezegenler, yörüngeler ve uzay keşfi 3D görselleştirme aracı.',
+  longDescription: `Güneş Sistemi & Gezegenler Keşif Atölyesi, öğrencilerin Dünya'mızın hareketlerini, mevsimleri, Güneş ve Ay tutulmalarını ve gezegenlerin Güneş'e olan mesafelerini etkileşimli modellerle öğrenmelerini sağlayan akıllı tahta aracıdır.
+
+### 🌟 Öne Çıkan Pedagojik Özellikler:
+- **3 Boyutlu Gezegen Modelleri:** Gezegenlerin dönüş hızları ve eksen eğiklikleri.
+- **Gündüz-Gece ve Mevsim Simülasyonu:** Dünya'nın Güneş etrafındaki dolanımı.
+- **Gezegen Kıyaslama Kartları:** Kütle, çap ve yerçekimi karşılaştırmaları.`,
+  coverImage: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=1200&h=675&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=1200&h=675&q=80'
+  ],
+  videoUrl: '',
+  videoEmbedCode: '',
+  badgeText: 'Uzay & Doğa',
+  category: 'Güneş Sistemi & Uzay',
+  subject: 'Fen Bilimleri',
+  targetGrades: ['3', '4', '5'],
+  features: [
+    '3 Boyutlu Gezegen Modelleri',
+    'Gündüz-Gece Simülasyonu',
+    'Gezegen Kıyaslama Kartları',
+    'İnteraktif Bilgi Kartları'
+  ],
+  isActive: true,
+  order: 4
+};
+
+const INITIAL_BOARD_TOOLS_MODULE = {
+  key: 'sinif-carki-zamanlayici',
+  title: 'Sınıf Çarkı & Geri Sayım Araçları',
+  shortDescription: 'Tüm kademelerde sınıf yönetimi, rastgele öğrenci seçimi ve etkinlik geri sayım sayacı.',
+  longDescription: `Sınıf Çarkı ve Geri Sayım Araçları, öğretmenlerin ders esnasında adil kura çekmesini, grup çalışmalarında süre yönetimini ve yarışmalarda heyecan verici geri sayımlar yapmasını sağlayan akıllı tahta sınıf yönetimi aracıdır.
+
+### 🌟 Öne Çıkan Özellikler:
+- **Dinamik Öğrenci İsim Çarkı:** Sınıf listesini yükleyerek tek tıkla kura çekme.
+- **Grup ve Takım Oluşturucu:** Adil ve dengeli öğrenci takımları kurma.
+- **Sesli Alarm & Kronometre:** Sınav ve etkinlik zamanlayıcı.`,
+  coverImage: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&h=675&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&h=675&q=80'
+  ],
+  videoUrl: '',
+  videoEmbedCode: '',
+  badgeText: 'Sınıf Yönetimi',
+  category: 'Sınıf Yönetimi',
+  subject: 'Tahta Araçları',
+  targetGrades: ['1', '2', '3', '4', '5', '8'],
+  features: [
+    'Dinamik Öğrenci İsim Çarkı',
+    'Grup & Takım Oluşturucu',
+    'Sesli Alarm & Geri Sayım',
+    'Puanlama Tablosu'
+  ],
+  isActive: true,
+  order: 5
 };
 
 // 60 Turkish realistic students (10 per class)
@@ -930,25 +1022,46 @@ async function seedDemoData() {
 
     console.log('[DEMO SERVICE] Cleared old demo data. Seeding classes, students, whiteboards, assignments & exams...');
 
-    // 2.5 Seed Initial Add-on Module: 1 Dk Okuma ONLY if no modules exist in system!
-    // NEVER overwrite existing modules created or updated by superadmin!
-    const hasReadingModule = await Module.findOne({ key: '1-dk-okuma' });
-    if (!hasReadingModule) {
-      await Module.create(INITIAL_READING_MODULE);
-      console.log('[DEMO SERVICE] Seeded baseline 1-dk-okuma module.');
-    }
+    // 2.5 Seed Initial Add-on Modules with categorized subjects
+    const defaultModulesList = [
+      INITIAL_READING_MODULE,
+      INITIAL_LETTER_WRITING_MODULE,
+      INITIAL_MATH_MODULE,
+      INITIAL_SCIENCE_MODULE,
+      INITIAL_BOARD_TOOLS_MODULE
+    ];
 
-    const hasLetterModule = await Module.findOne({ key: 'harf-cizgi-atolyesi' });
-    if (!hasLetterModule) {
-      await Module.create(INITIAL_LETTER_WRITING_MODULE);
-      console.log('[DEMO SERVICE] Seeded baseline harf-cizgi-atolyesi module.');
+    for (const defMod of defaultModulesList) {
+      const existing = await Module.findOne({ key: defMod.key });
+      if (!existing) {
+        await Module.create(defMod);
+        console.log(`[DEMO SERVICE] Seeded baseline ${defMod.key} module.`);
+      } else {
+        // Update subject and category if missing or updated
+        let needsSave = false;
+        if (!existing.subject || existing.subject !== defMod.subject) {
+          existing.subject = defMod.subject;
+          needsSave = true;
+        }
+        if (existing.category !== defMod.category) {
+          existing.category = defMod.category;
+          needsSave = true;
+        }
+        if (defMod.targetGrades && (!existing.targetGrades || existing.targetGrades.length === 0)) {
+          existing.targetGrades = defMod.targetGrades;
+          needsSave = true;
+        }
+        if (needsSave) {
+          await existing.save();
+        }
+      }
     }
 
     // Fetch all active modules currently in system
     const activeModules = await Module.find({ isActive: true });
     const activeModuleKeys = activeModules.map(m => m.key);
 
-    // 3. Create 6 distinct classes with dynamic enabledModules based on active modules
+    // 3. Create 6 distinct classes with grade-appropriate enabledModules
     const classConfigs = [
       { grade: '1', section: 'A', name: '1-A Sınıfı', schoolName: 'Oxonom İlkokulu', academicYear: '2024-2025', description: 'Okuma Yazma & Temel Sayılar', color: '#3B82F6' },
       { grade: '2', section: 'B', name: '2-B Sınıfı', schoolName: 'Oxonom İlkokulu', academicYear: '2024-2025', description: 'Hayat Bilgisi & Temel İşlemler', color: '#10B981' },
@@ -960,10 +1073,15 @@ async function seedDemoData() {
 
     const createdClasses = [];
     for (const cfg of classConfigs) {
-      const classKey = `${cfg.grade}-${cfg.section}`;
-      
-      // Her demo sınıfında tüm aktif modüller varsayılan olarak açık olsun (demo kullanıcıların tam erişimi için)
-      const combinedEnabledModules = activeModules.map(m => m.key);
+      // Sınıf kademesine uygun modülleri ata (örneğin 1. sınıfa okuma-yazma, 2. sınıfa uygun olanlar vs.)
+      const gradeAppropriateModules = activeModules.filter(m => {
+        if (!m.targetGrades || m.targetGrades.length === 0) return true;
+        return m.targetGrades.includes(cfg.grade);
+      }).map(m => m.key);
+
+      const combinedEnabledModules = gradeAppropriateModules.length > 0 
+        ? gradeAppropriateModules 
+        : activeModuleKeys;
 
       const cls = new Class({
         teacherId,

@@ -48,6 +48,11 @@ const moduleSchema = new mongoose.Schema({
         type: String,
         default: 'Tahta Araçları'
     },
+    subject: {
+        type: String,
+        default: 'Türkçe',
+        trim: true
+    },
     targetGrades: [{
         type: String,
         trim: true

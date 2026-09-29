@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Play, Pause, RotateCcw, Clock, BookOpen, Volume2, 
+    Play, Pause, RotateCcw, Clock, BookOpen, 
     Sparkles, CheckCircle2, ChevronDown, Plus, Minus,
-    X, Maximize2, Minimize2, MoveRight, Award, Share2,
-    GripHorizontal, Type, PenTool, Check, Palette, FileText
+    X, Maximize2, Minimize2, MoveRight, Award,
+    Type, PenTool, Check, Trophy, Star, Zap, Target,
+    Flag, RefreshCw, Eye, Flame, AlertCircle
 } from 'lucide-react';
 
 // İlkokul 1-4. sınıf seviyesine uygun zengin pedagojik okuma metinleri
@@ -76,51 +77,119 @@ const LETTER_GROUPS = [
     { name: '5. Grup (H - V - Ğ - F - J)', letters: ['H', 'h', 'V', 'v', 'Ğ', 'ğ', 'F', 'f', 'J', 'j'], samples: ['Havuç', 'Vapur', 'Ağaç', 'Fidan', 'Jale', 'Yağmur', 'Fener'] }
 ];
 
-export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas }) {
-    // Aktif Ana Sekme: 'reading' (1 Dk Okuma) veya 'letters' (Harf/Kelime Çalışma Atölyesi)
+// Sevimli Rozet & Analiz Hesaplayıcı
+function getReadingBadge(wpm) {
+    if (wpm >= 80) {
+        return {
+            title: 'Şimşek Çita',
+            subtitle: 'Süper Hızlı Okuyucu!',
+            emoji: '🐆',
+            stars: 3,
+            color: 'from-amber-400 to-orange-500',
+            textColor: 'text-amber-500',
+            bgSoft: 'bg-amber-500/10 border-amber-500/30',
+            note: 'İnanılmaz bir hız! Gözlerin metinde adeta bir çita gibi kayıyor, harikasın!'
+        };
+    }
+    if (wpm >= 50) {
+        return {
+            title: 'Akıllı Tilki',
+            subtitle: 'Harika ve Akıcı Okuma!',
+            emoji: '🦊',
+            stars: 3,
+            color: 'from-orange-400 to-rose-500',
+            textColor: 'text-orange-500',
+            bgSoft: 'bg-orange-500/10 border-orange-500/30',
+            note: 'Çok dengeli ve akıcı okudun! Kelimeleri ritimli ve pürüzsüz yakaladın.'
+        };
+    }
+    if (wpm >= 30) {
+        return {
+            title: 'Neşeli Tavşan',
+            subtitle: 'Çok Güzel İlerliyorsun!',
+            emoji: '🐰',
+            stars: 2,
+            color: 'from-emerald-400 to-teal-500',
+            textColor: 'text-emerald-500',
+            bgSoft: 'bg-emerald-500/10 border-emerald-500/30',
+            note: 'Kelimeleri tane tane ve güvenle okudun! Pratik yaptıkça daha da hızlanacaksın.'
+        };
+    }
+    return {
+        title: 'Bilge Kaplumbağa',
+        subtitle: 'Adım Adım Zirveye!',
+        emoji: '🐢',
+        stars: 1,
+        color: 'from-blue-400 to-indigo-500',
+        textColor: 'text-blue-500',
+        bgSoft: 'bg-blue-500/10 border-blue-500/30',
+        note: 'Harika bir başlangıç! Tane tane okumak anlamanın ilk anahtarıdır. Düzenli okumayla hızın katlanacak!'
+    };
+}
+
+function getPedagogicalTip(wpm, completionPct) {
+    if (completionPct >= 100) {
+        return 'Tebrikler! Metnin tamamını bitirdin. Şimdi hikayedeki ana fikri ve sevimli karakterleri kendi cümlelerinle anlatmayı deneyebilirsin.';
+    }
+    if (wpm >= 60) {
+        return 'İpucu: Okurken dudaklarını kıpırdatmadan yalnızca gözlerinle satırları takip etmen okuma hızını daha da artıracaktır.';
+    }
+    return 'İpucu: Her gün bu ekranda 5 dakika pratik yaparak göz kaslarını eğitebilir ve kelimeleri tek bakışta tanıyabilirsin.';
+}
+
+export default function ReadingScreen({ isOpen = true, onClose }) {
+    // Aktif Ana Sekme: 'reading' (Hızlı Okuma İstasyonu) veya 'letters' (Harf/Kelime Çalışma Atölyesi)
     const [activeTab, setActiveTab] = useState('reading');
 
     // Pencere Durumu: 'normal', 'minimized', 'maximized'
     const [windowState, setWindowState] = useState('normal');
 
-    // Arka Plan Teması: Daima koyu mod (Gece Teması)
-    const theme = 'dark';
-
-    // --- SEKME 1: OKUMA METNİ & SAYAÇ STATE'LERİ ---
+    // Metin Seçenekleri
     const [selectedTextId, setSelectedTextId] = useState('metin-1');
     const [customText, setCustomText] = useState('');
     const [isCustomMode, setIsCustomMode] = useState(false);
-    const [fontSizeLevel, setFontSizeLevel] = useState(2); // 0: 24px, 1: 30px, 2: 36px, 3: 48px
+    const [fontSizeLevel, setFontSizeLevel] = useState(2); // 0: 24px, 1: 30px, 2: 36px, 3: 44px
     const [showReadingRuler, setShowReadingRuler] = useState(false);
     const [rulerY, setRulerY] = useState(0);
 
-    // Sayaç State'leri
+    // Sayaç & Okuma Takip Durumları
     const [durationSeconds, setDurationSeconds] = useState(60);
     const [timeLeft, setTimeLeft] = useState(60);
     const [isRunning, setIsRunning] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
+    const [elapsedSeconds, setElapsedSeconds] = useState(60);
+
+    // İşaretleme & Analiz Karnesi Durumları
+    const [isWaitingForMarking, setIsWaitingForMarking] = useState(false);
     const [lastReadWordIndex, setLastReadWordIndex] = useState(null);
     const [readWordsCount, setReadWordsCount] = useState(0);
+    const [showReportModal, setShowReportModal] = useState(false);
 
-    // --- SEKME 2: HARF & KELİME ÇALIŞMA ATÖLYESİ STATE'LERİ ---
-    // fontMode: 'normal' (TTKBDikTemel-Normal) veya 'kilavuzlu' (TTKBDikTemel-Kilavuzlu ok ve sayılar)
+    // Harf Atölyesi State'leri
     const [fontMode, setFontMode] = useState('kilavuzlu'); 
     const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
     const [activePracticeText, setActivePracticeText] = useState('Ela lale el ele.');
-    const [practiceFontSize, setPracticeFontSize] = useState('text-6xl'); // text-5xl, text-6xl, text-7xl
+    const [practiceFontSize, setPracticeFontSize] = useState('text-6xl');
 
     const timerRef = useRef(null);
     const contentRef = useRef(null);
-    const windowConstraintsRef = useRef(null);
 
-    // Aktif Okuma Metni
-    const activeText = isCustomMode 
-        ? { title: 'Özel Okuma Metnim', content: customText || 'Lütfen buraya kendi okuma metninizi yazın...' }
-        : SAMPLE_TEXTS.find(t => t.id === selectedTextId) || SAMPLE_TEXTS[0];
+    // Aktif Metin & Kelimeler
+    const activeText = useMemo(() => {
+        if (isCustomMode) {
+            return {
+                title: 'Özel Okuma Metnim',
+                content: customText.trim() || 'Lütfen buraya kendi okuma metninizi yazın...'
+            };
+        }
+        return SAMPLE_TEXTS.find(t => t.id === selectedTextId) || SAMPLE_TEXTS[0];
+    }, [isCustomMode, customText, selectedTextId]);
 
-    const words = activeText.content.trim().split(/\s+/);
+    const words = useMemo(() => {
+        return activeText.content.trim().split(/\s+/).filter(Boolean);
+    }, [activeText.content]);
 
-    // Zamanlayıcı
+    // Sayaç Mekanizması
     useEffect(() => {
         if (isRunning && timeLeft > 0) {
             timerRef.current = setInterval(() => {
@@ -129,6 +198,8 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                         clearInterval(timerRef.current);
                         setIsRunning(false);
                         setIsFinished(true);
+                        setElapsedSeconds(durationSeconds);
+                        setIsWaitingForMarking(true);
                         return 0;
                     }
                     return prev - 1;
@@ -138,81 +209,93 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
             clearInterval(timerRef.current);
         }
         return () => clearInterval(timerRef.current);
-    }, [isRunning, timeLeft]);
+    }, [isRunning, timeLeft, durationSeconds]);
 
+    // Başlat / Duraklat
     const handleStartPause = () => {
-        if (isFinished) handleReset();
+        if (isFinished || timeLeft === 0) {
+            handleReset();
+            setTimeout(() => setIsRunning(true), 50);
+            return;
+        }
         setIsRunning(prev => !prev);
     };
 
+    // Erken Bitirdim Butonu
+    const handleFinishEarly = () => {
+        const spent = Math.max(1, durationSeconds - timeLeft);
+        clearInterval(timerRef.current);
+        setIsRunning(false);
+        setIsFinished(true);
+        setElapsedSeconds(spent);
+        setIsWaitingForMarking(true);
+    };
+
+    // Sıfırla
     const handleReset = () => {
         setIsRunning(false);
         setIsFinished(false);
+        setIsWaitingForMarking(false);
+        setShowReportModal(false);
         setTimeLeft(durationSeconds);
+        setElapsedSeconds(durationSeconds);
         setLastReadWordIndex(null);
         setReadWordsCount(0);
         clearInterval(timerRef.current);
     };
 
+    // Süre Seçimi (30s, 60s, 120s)
     const handleSelectDuration = (seconds) => {
         setDurationSeconds(seconds);
         setTimeLeft(seconds);
+        setElapsedSeconds(seconds);
         setIsRunning(false);
         setIsFinished(false);
+        setIsWaitingForMarking(false);
+        setShowReportModal(false);
+        setLastReadWordIndex(null);
+        setReadWordsCount(0);
     };
 
+    // Kelimeye Dokunma / İşaretleme
     const handleWordClick = (index) => {
         setLastReadWordIndex(index);
-        setReadWordsCount(index + 1);
+        const count = index + 1;
+        setReadWordsCount(count);
+
+        // Eğer süre bitmiş veya öğrenci bitirdiğinde işaretliyorsa doğrudan raporu aç
+        if (isWaitingForMarking || isFinished || !isRunning) {
+            setIsWaitingForMarking(false);
+            setShowReportModal(true);
+        }
     };
 
+    // Cetvel Hareketi
     const handleMouseMove = (e) => {
         if (!showReadingRuler || !contentRef.current) return;
         const rect = contentRef.current.getBoundingClientRect();
         setRulerY(e.clientY - rect.top);
     };
 
-    // Tema Stilleri (Göz yormayan soft ve dinlendirici paletler)
-    const themeStyles = {
-        parchment: {
-            container: 'bg-[#faf7f2] dark:bg-slate-900 border-[#e8dfd5] dark:border-slate-800 text-slate-800 dark:text-slate-100',
-            header: 'bg-[#f5ede4]/90 dark:bg-slate-850/90 border-[#e5d9cd] dark:border-slate-800',
-            toolbar: 'bg-[#f7f0e8]/80 dark:bg-slate-850/60 border-[#e5d9cd] dark:border-slate-800',
-            content: 'bg-[#faf7f2] dark:bg-slate-900 text-slate-800 dark:text-slate-100',
-            footer: 'bg-[#f5ede4]/90 dark:bg-slate-850/90 border-[#e5d9cd] dark:border-slate-800',
-            accent: 'text-amber-800 dark:text-amber-300'
-        },
-        sage: {
-            container: 'bg-[#f4f8f5] dark:bg-slate-900 border-[#dce8df] dark:border-slate-800 text-slate-800 dark:text-slate-100',
-            header: 'bg-[#eaf2ec]/90 dark:bg-slate-850/90 border-[#d4e4d8] dark:border-slate-800',
-            toolbar: 'bg-[#edf5ef]/80 dark:bg-slate-850/60 border-[#d4e4d8] dark:border-slate-800',
-            content: 'bg-[#f4f8f5] dark:bg-slate-900 text-slate-800 dark:text-slate-100',
-            footer: 'bg-[#eaf2ec]/90 dark:bg-slate-850/90 border-[#d4e4d8] dark:border-slate-800',
-            accent: 'text-emerald-800 dark:text-emerald-300'
-        },
-        white: {
-            container: 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100',
-            header: 'bg-slate-50/90 dark:bg-slate-850/90 border-slate-200 dark:border-slate-800',
-            toolbar: 'bg-slate-100/70 dark:bg-slate-850/60 border-slate-200 dark:border-slate-800',
-            content: 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100',
-            footer: 'bg-slate-50/90 dark:bg-slate-850/90 border-slate-200 dark:border-slate-800',
-            accent: 'text-indigo-800 dark:text-indigo-300'
-        },
-        dark: {
-            container: 'bg-slate-900 border-slate-800 text-slate-100',
-            header: 'bg-slate-850 border-slate-800',
-            toolbar: 'bg-slate-800 border-slate-750',
-            content: 'bg-slate-900 text-slate-100',
-            footer: 'bg-slate-850 border-slate-800',
-            accent: 'text-indigo-300'
-        }
-    };
+    // Analiz İstatistikleri
+    const effectiveSeconds = Math.max(1, elapsedSeconds || (durationSeconds - timeLeft) || durationSeconds);
+    const wpm = readWordsCount > 0 ? Math.round((readWordsCount / effectiveSeconds) * 60) : 0;
+    const completionPct = words.length > 0 ? Math.min(100, Math.round((readWordsCount / words.length) * 100)) : 0;
+    const badge = getReadingBadge(wpm);
+    const pedagogicalTip = getPedagogicalTip(wpm, completionPct);
 
-    const currentTheme = themeStyles[theme] || themeStyles.parchment;
+    // SVG Dairesel Sayaç Hesaplaması
+    const radius = 26;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = durationSeconds > 0 
+        ? circumference * (1 - timeLeft / durationSeconds) 
+        : 0;
+
+    const isUrgent = isRunning && timeLeft <= 10 && timeLeft > 0;
 
     if (!isOpen) return null;
 
-    // --- KÜÇÜLTÜLMÜŞ (SİMGE DURUMUNA GETİRİLMİŞ) YÜZEN KAPSÜL ---
+    // --- KÜÇÜLTÜLMÜŞ (SİMGE DURUMU) KAPSÜL ---
     if (windowState === 'minimized') {
         return (
             <motion.div
@@ -221,124 +304,117 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
-                className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl shadow-xl border-2 border-amber-300 cursor-pointer select-none active:scale-95 transition"
+                className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-2xl border-2 border-amber-300 cursor-pointer select-none active:scale-95 transition"
                 onClick={() => setWindowState('normal')}
-                title="Okuma ve Harf Atölyesini Aç"
+                title="Hızlı Okuma İstasyonunu Aç"
             >
-                <BookOpen className="w-5 h-5 animate-bounce" />
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold">
+                    📖
+                </div>
                 <div className="text-left font-sans">
-                    <div className="text-xs font-bold leading-tight">Okuma & Harf Atölyesi</div>
-                    <div className="text-[10px] text-amber-100">
-                        {activeTab === 'reading' ? `1 Dk Sayaç (${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')})` : 'Harf Çalışması'}
+                    <div className="text-xs font-bold leading-tight">Hızlı Okuma İstasyonu</div>
+                    <div className="text-[11px] text-amber-100 font-mono font-bold">
+                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                        {isRunning && ' • Devam Ediyor'}
                     </div>
                 </div>
-                <Maximize2 className="w-4 h-4 ml-1 opacity-80" />
+                <Maximize2 className="w-4 h-4 ml-1 opacity-90" />
             </motion.div>
         );
     }
 
-    // --- TAM / NORMAL PENCERE GÖRÜNÜMÜ ---
     const isMax = windowState === 'maximized';
 
     return (
-        <div ref={windowConstraintsRef} className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-0 sm:p-4 md:p-6 overflow-hidden">
-            {/* Arka Plan Karartması (Yarı saydam, pencere dışına tıklama) */}
+        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-0 sm:p-3 md:p-5 overflow-hidden">
+            {/* Arka Plan Karartması */}
             <div 
-                className="absolute inset-0 bg-black/50 backdrop-blur-xs pointer-events-auto transition-opacity"
+                className="absolute inset-0 bg-black/60 backdrop-blur-xs pointer-events-auto transition-opacity"
                 onClick={() => {}}
             />
 
-            {/* Hareket Ettirilebilir (Masaüstü) / Tam Ekran (Mobil) Ana Pencere */}
+            {/* Ana Pencere Kartı (Mobil: 100dvh, Masaüstü: Şık Köşeli Panel) */}
             <motion.div
-                drag={!isMax && typeof window !== 'undefined' && window.innerWidth >= 768}
-                dragMomentum={false}
-                dragElastic={0.05}
                 initial={{ scale: 0.95, opacity: 0, y: 15 }}
                 animate={{ 
                     scale: 1, 
                     opacity: 1, 
                     y: 0,
-                    width: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100vw' : '92vw',
-                    maxWidth: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100%' : '1080px',
-                    height: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100dvh' : '88vh',
-                    maxHeight: isMax || (typeof window !== 'undefined' && window.innerWidth < 640) ? '100%' : '840px'
+                    width: isMax ? '100vw' : '100%',
+                    maxWidth: isMax ? '100%' : '1100px',
+                    height: isMax ? '100dvh' : '100%',
+                    maxHeight: isMax ? '100%' : '880px'
                 }}
                 exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className={`pointer-events-auto relative rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border flex flex-col overflow-hidden select-none ${currentTheme.container}`}
+                transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+                className="pointer-events-auto relative w-full h-[100dvh] sm:h-[92vh] rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-slate-800 bg-slate-900 text-slate-100 flex flex-col overflow-hidden select-none"
             >
-                {/* --- 1. ÜST BAŞLIK VE PENCERE KONTROLLERİ --- */}
-                <header className={`window-drag-handle flex flex-wrap items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b cursor-grab active:cursor-grabbing backdrop-blur-md gap-2 ${currentTheme.header}`}>
-                    {/* Sol: İkon, Başlık ve Sekme Değiştirici */}
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold shadow-inner">
-                            <BookOpen className="w-5 h-5" />
+                {/* --- 1. ÜST BAŞLIK VE SEKME YÖNETİMİ --- */}
+                <header className="flex items-center justify-between px-3 sm:px-5 py-2.5 bg-slate-850 border-b border-slate-800/90 gap-2 shrink-0">
+                    {/* Sol: Logo & Sekmeler */}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20 text-lg">
+                            ⏱️
                         </div>
 
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-base sm:text-lg font-bold flex items-center gap-1.5">
-                                    <span>İlkokul Okuma & Harf Atölyesi</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1">
+                                    <span>Hızlı Okuma İstasyonu</span>
                                 </h2>
-                                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-semibold font-mono">
-                                    MEB TTKB Uyumlu
+                                <span className="hidden xs:inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                                    İlkokul
                                 </span>
                             </div>
 
-                            {/* Sekme Butonları (Tabs) */}
-                            <div className="flex items-center gap-1.5 mt-1">
+                            {/* Sekme Değiştirici */}
+                            <div className="flex items-center gap-1 mt-0.5">
                                 <button
                                     onClick={() => setActiveTab('reading')}
-                                    className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                                    className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                                         activeTab === 'reading'
                                             ? 'bg-amber-500 text-white shadow-xs'
-                                            : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                     }`}
                                 >
-                                    📖 1 Dk Okuma Ekranı
+                                    📖 Süreli Okuma
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('letters')}
-                                    className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                                    className={`px-2 sm:px-2.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                                         activeTab === 'letters'
                                             ? 'bg-indigo-600 text-white shadow-xs'
-                                            : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                     }`}
                                 >
-                                    ✍️ Harf & Kelime Çalışması
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                                    ✍️ Harf & Kelime
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Sağ: Tema Seçici, Büyüt/Küçült ve Kapat Butonları */}
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-
-
-                        {/* Simge Durumuna Küçült */}
+                    {/* Sağ: Pencere Boyutu & Kapat Butonu */}
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                         <button
                             onClick={() => setWindowState('minimized')}
-                            className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer"
                             title="Simge Durumuna Küçült"
                         >
-                            <Minimize2 className="w-4 h-4" />
+                            <Minimize2 className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Tam Ekran / Normal Boyut */}
                         <button
                             onClick={() => setWindowState(prev => prev === 'maximized' ? 'normal' : 'maximized')}
-                            className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition cursor-pointer"
-                            title={isMax ? "Normal Boyut" : "Genişlet"}
+                            className="hidden sm:flex w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 items-center justify-center transition cursor-pointer"
+                            title={isMax ? "Normal Boyut" : "Tam Ekran"}
                         >
-                            <Maximize2 className="w-4 h-4" />
+                            <Maximize2 className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Kapat */}
                         {onClose && (
                             <button
                                 onClick={onClose}
-                                className="w-8 h-8 rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white flex items-center justify-center transition cursor-pointer ml-1"
+                                className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition cursor-pointer ml-1"
                                 title="Kapat"
                             >
                                 <X className="w-4 h-4" />
@@ -347,14 +423,191 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                     </div>
                 </header>
 
-                {/* --- 2. SEKME 1: 1 DAKİKA OKUMA EKRANI --- */}
+                {/* --- 2. SEKME 1: SÜRELİ HIZLI OKUMA İSTASYONU --- */}
                 {activeTab === 'reading' && (
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        {/* Araç Çubuğu: Hikaye Seçici, Süre Kontrolleri, Okuma Cetveli */}
-                        <div className={`flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 border-b text-xs ${currentTheme.toolbar}`}>
-                            {/* Hikaye Seçici */}
-                            <div className="flex items-center gap-2">
-                                <span className="font-semibold text-slate-600 dark:text-slate-300">Hikaye:</span>
+                    <div className="flex-1 flex flex-col overflow-hidden relative">
+                        {/* ========================================================= */}
+                        {/* BELİRGİN VE ANİMASYONLU SAYAÇ HERO BÖLÜMÜ                */}
+                        {/* ========================================================= */}
+                        <div className="bg-gradient-to-b from-slate-850 to-slate-900 border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 shrink-0 shadow-inner">
+                            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+                                
+                                {/* Sol & Orta: Animasyonlu Sayaç Göstergesi + Durum Mesajı */}
+                                <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-start">
+                                    {/* Dairesel SVG Sayaç */}
+                                    <div className="relative flex items-center justify-center shrink-0">
+                                        <svg className="w-16 h-16 sm:w-18 sm:h-18 -rotate-90">
+                                            {/* Arka plan halkası */}
+                                            <circle
+                                                cx="32"
+                                                cy="32"
+                                                r={radius}
+                                                className="stroke-slate-800"
+                                                strokeWidth="5"
+                                                fill="transparent"
+                                            />
+                                            {/* Animasyonlu ilerleme halkası */}
+                                            <motion.circle
+                                                cx="32"
+                                                cy="32"
+                                                r={radius}
+                                                className={`transition-all duration-300 ${
+                                                    isUrgent 
+                                                        ? 'stroke-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]' 
+                                                        : isRunning 
+                                                            ? 'stroke-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                                                            : timeLeft === 0
+                                                                ? 'stroke-emerald-400'
+                                                                : 'stroke-amber-500/70'
+                                                }`}
+                                                strokeWidth="5.5"
+                                                strokeDasharray={circumference}
+                                                strokeDashoffset={strokeDashoffset}
+                                                strokeLinecap="round"
+                                                fill="transparent"
+                                            />
+                                        </svg>
+
+                                        {/* Sayaç İçi Sayı & İkon */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                            <motion.span 
+                                                key={timeLeft}
+                                                initial={isUrgent ? { scale: 1.25 } : { scale: 1 }}
+                                                animate={{ scale: 1 }}
+                                                className={`font-mono text-base sm:text-lg font-black tracking-tight leading-none ${
+                                                    isUrgent 
+                                                        ? 'text-rose-400 animate-pulse' 
+                                                        : isRunning 
+                                                            ? 'text-amber-300' 
+                                                            : 'text-white'
+                                                }`}
+                                            >
+                                                {String(timeLeft).padStart(2, '0')}
+                                            </motion.span>
+                                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">
+                                                sn
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Dinamik Sevimli Maskot Durum Mesajı */}
+                                    <div className="flex-1 md:flex-initial">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-base sm:text-lg">
+                                                {isWaitingForMarking ? '🎯' : isRunning ? (isUrgent ? '⚡' : '🚀') : isFinished ? '🏆' : '✨'}
+                                            </span>
+                                            <span className="text-xs sm:text-sm font-bold text-white">
+                                                {isWaitingForMarking 
+                                                    ? 'Süre bitti! Kaldığın yeri seç' 
+                                                    : isRunning 
+                                                        ? (isUrgent ? 'Son saniyeler! Devam et!' : 'Okuma başladı! Sakince oku') 
+                                                        : isFinished 
+                                                            ? 'Harika bir okuma oldu!' 
+                                                            : 'Okumaya hazır mısın?'}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-snug line-clamp-1">
+                                            {isWaitingForMarking
+                                                ? 'Metinde en son okuduğun kelimeye tıkla 👇'
+                                                : isRunning
+                                                    ? 'Dudaklarını kıpırdatmadan gözlerinle takip etmeyi dene.'
+                                                    : 'Süreyi seç ve "Başla" butonuna basarak oku.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Sağ: Süre Seçimi Hapları & Ana Kontrol Butonları */}
+                                <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
+                                    {/* Süre Seçenekleri */}
+                                    <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700/80">
+                                        <button
+                                            onClick={() => handleSelectDuration(30)}
+                                            disabled={isRunning}
+                                            className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50 ${
+                                                durationSeconds === 30 
+                                                    ? 'bg-amber-500 text-white shadow-xs' 
+                                                    : 'text-slate-300 hover:text-white'
+                                            }`}
+                                        >
+                                            30 sn
+                                        </button>
+                                        <button
+                                            onClick={() => handleSelectDuration(60)}
+                                            disabled={isRunning}
+                                            className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50 ${
+                                                durationSeconds === 60 
+                                                    ? 'bg-amber-500 text-white shadow-xs' 
+                                                    : 'text-slate-300 hover:text-white'
+                                            }`}
+                                        >
+                                            1 Dk
+                                        </button>
+                                        <button
+                                            onClick={() => handleSelectDuration(120)}
+                                            disabled={isRunning}
+                                            className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50 ${
+                                                durationSeconds === 120 
+                                                    ? 'bg-amber-500 text-white shadow-xs' 
+                                                    : 'text-slate-300 hover:text-white'
+                                            }`}
+                                        >
+                                            2 Dk
+                                        </button>
+                                    </div>
+
+                                    {/* Başlat / Duraklat Butonu */}
+                                    <button
+                                        onClick={handleStartPause}
+                                        className={`px-3.5 sm:px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-lg transition active:scale-95 cursor-pointer text-xs sm:text-sm ${
+                                            isRunning 
+                                                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 ring-2 ring-amber-300/40' 
+                                                : isFinished || timeLeft === 0
+                                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-white shadow-emerald-500/20'
+                                                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-emerald-500/25'
+                                        }`}
+                                    >
+                                        {isRunning ? (
+                                            <>
+                                                <Pause className="w-4 h-4 fill-current" />
+                                                <span>Duraklat</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play className="w-4 h-4 fill-current" />
+                                                <span>{isFinished || timeLeft === 0 ? 'Tekrar Başlat' : 'Okumaya Başla'}</span>
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {/* Erken Bitirdim Butonu (Çocuk süreden önce okumayı bitirirse) */}
+                                    {isRunning && (
+                                        <button
+                                            onClick={handleFinishEarly}
+                                            className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center gap-1 shadow-md shadow-indigo-600/30 transition active:scale-95 cursor-pointer animate-bounce"
+                                            title="Metni süreden önce bitirdim!"
+                                        >
+                                            <Flag className="w-3.5 h-3.5" />
+                                            <span>Bitirdim! 🏁</span>
+                                        </button>
+                                    )}
+
+                                    {/* Sıfırla Butonu */}
+                                    <button
+                                        onClick={handleReset}
+                                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition active:scale-95 cursor-pointer border border-slate-700/80"
+                                        title="Baştan Al"
+                                    >
+                                        <RotateCcw className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* --- HİKAYE VE TİPOGRAFİ SEÇİCİ TOOLBAR --- */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-6 py-2 bg-slate-850/80 border-b border-slate-800 text-xs shrink-0">
+                            {/* Hikaye Listesi Seçici */}
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-slate-400 font-semibold">📚 Metin:</span>
                                 <select
                                     value={isCustomMode ? 'custom' : selectedTextId}
                                     onChange={(e) => {
@@ -366,167 +619,130 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                                         }
                                         handleReset();
                                     }}
-                                    className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-medium outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer max-w-[210px] sm:max-w-xs truncate"
+                                    className="bg-slate-800 border border-slate-700 rounded-lg px-2 sm:px-3 py-1 text-slate-200 font-medium outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer max-w-[190px] sm:max-w-xs truncate"
                                 >
                                     {SAMPLE_TEXTS.map(t => (
                                         <option key={t.id} value={t.id}>
                                             {t.title} ({t.grade})
                                         </option>
                                     ))}
-                                    <option value="custom">✏️ Kendi Hikayeni Yaz</option>
+                                    <option value="custom">✏️ Kendi Metnini Yaz</option>
                                 </select>
                             </div>
 
-                            {/* 1 Dakikalık Sayaç & Kontroller */}
-                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-                                <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-amber-600 dark:text-amber-400">
-                                    <Clock className="w-3.5 h-3.5 animate-pulse" />
-                                    <span>
-                                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 pl-1.5">
-                                    <button
-                                        onClick={() => handleSelectDuration(60)}
-                                        className={`px-1.5 py-0.5 rounded font-semibold text-[11px] ${durationSeconds === 60 ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-                                    >
-                                        1 Dk
-                                    </button>
-                                    <button
-                                        onClick={() => handleSelectDuration(120)}
-                                        className={`px-1.5 py-0.5 rounded font-semibold text-[11px] ${durationSeconds === 120 ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-                                    >
-                                        2 Dk
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 pl-1.5">
-                                    <button
-                                        onClick={handleStartPause}
-                                        className={`px-2.5 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-xs transition active:scale-95 cursor-pointer text-xs ${
-                                            isRunning 
-                                                ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                        }`}
-                                    >
-                                        {isRunning ? (
-                                            <>
-                                                <Pause className="w-3 h-3" />
-                                                <span>Duraklat</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Play className="w-3 h-3" />
-                                                <span>{isFinished ? 'Tekrar' : 'Başlat'}</span>
-                                            </>
-                                        )}
-                                    </button>
-
-                                    <button
-                                        onClick={handleReset}
-                                        className="p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition active:scale-95 cursor-pointer"
-                                        title="Sıfırla"
-                                    >
-                                        <RotateCcw className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Tipografi Araçları */}
+                            {/* Tipografi ve Cetvel Araçları */}
                             <div className="flex items-center gap-2">
-                                <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-0.5">
+                                {/* Yazı Boyutu */}
+                                <div className="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5">
                                     <button
                                         onClick={() => setFontSizeLevel(prev => Math.max(0, prev - 1))}
                                         disabled={fontSizeLevel === 0}
-                                        className="p-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                                        className="p-1 text-slate-300 hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
                                         title="Yazıyı Küçült"
                                     >
-                                        <Minus className="w-3 h-3" />
+                                        <Minus className="w-3.5 h-3.5" />
                                     </button>
-                                    <span className="px-2 font-mono font-semibold text-slate-700 dark:text-slate-200 text-xs">
-                                        {['24', '30', '36', '48'][fontSizeLevel]}px
+                                    <span className="px-2 font-mono font-semibold text-amber-400 text-xs">
+                                        {['24', '30', '36', '44'][fontSizeLevel]}px
                                     </span>
                                     <button
                                         onClick={() => setFontSizeLevel(prev => Math.min(3, prev + 1))}
                                         disabled={fontSizeLevel === 3}
-                                        className="p-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                                        className="p-1 text-slate-300 hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
                                         title="Yazıyı Büyüt"
                                     >
-                                        <Plus className="w-3 h-3" />
+                                        <Plus className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
 
+                                {/* Okuma Cetveli Butonu */}
                                 <button
                                     onClick={() => setShowReadingRuler(prev => !prev)}
-                                    className={`px-2.5 py-1 rounded-lg border font-semibold transition active:scale-95 cursor-pointer text-xs ${
+                                    className={`px-2.5 py-1 rounded-lg border font-semibold transition active:scale-95 cursor-pointer text-xs flex items-center gap-1 ${
                                         showReadingRuler 
-                                            ? 'bg-amber-500 text-white border-amber-600' 
-                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold' 
+                                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
                                     }`}
                                     title="Satır Takip Çizgisi"
                                 >
-                                    📏 Cetvel
+                                    <span>📏 Cetvel</span>
                                 </button>
 
-                                {onAddToCanvas && (
+                                {/* Raporu Tekrar Aç (Eğer daha önce kelime seçilmişse) */}
+                                {readWordsCount > 0 && !showReportModal && (
                                     <button
-                                        onClick={() => {
-                                            onAddToCanvas({
-                                                text: activeText.content,
-                                                title: activeText.title,
-                                                fontFamily: 'TTKBDikTemel-Normal',
-                                                fontSize: 28
-                                            });
-                                            if (onClose) onClose();
-                                        }}
-                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
-                                        title="Bu metni panoya yazı olarak aktar"
+                                        onClick={() => setShowReportModal(true)}
+                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 font-bold transition active:scale-95 cursor-pointer text-xs flex items-center gap-1"
                                     >
-                                        <Share2 className="w-3 h-3" />
-                                        <span className="hidden md:inline">Panoya Aktar</span>
+                                        <Trophy className="w-3 h-3 text-amber-400" />
+                                        <span>Karnemi Gör</span>
                                     </button>
                                 )}
                             </div>
                         </div>
 
-                        {/* Metin Alanı */}
+                        {/* --- İŞARETLEME ÇAĞRISI BANNERI (SÜRE BİTİNCE VEYA BİTİRDİM DEYİNCE ÇIKAR) --- */}
+                        <AnimatePresence>
+                            {isWaitingForMarking && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-4 py-2 text-white shadow-lg shrink-0 flex items-center justify-between gap-2 overflow-hidden"
+                                >
+                                    <div className="flex items-center gap-2 text-xs sm:text-sm font-black animate-pulse">
+                                        <span className="text-xl">👇</span>
+                                        <span>HARİKA OKUDUN! Şimdi aşağıdaki metinde en son okuduğun kelimeye parmağınla dokun!</span>
+                                    </div>
+                                    <div className="hidden sm:flex items-center gap-1 text-[11px] bg-black/20 px-2.5 py-0.5 rounded-full font-semibold">
+                                        <span>Hedef Kelimene Tıkla</span>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* ========================================================= */}
+                        {/* ANA OKUMA METNİ ALANI                                     */}
+                        {/* ========================================================= */}
                         <div 
                             ref={contentRef}
                             onMouseMove={handleMouseMove}
-                            className={`flex-1 overflow-y-auto p-6 sm:p-10 relative select-none cursor-default ${currentTheme.content}`}
+                            className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-10 relative select-none cursor-default bg-slate-900"
                         >
-                            {/* Okuma Cetveli (Satır Takip Kılavuzu) */}
+                            {/* Okuma Cetveli (Satır Takip) */}
                             {showReadingRuler && (
                                 <div 
-                                    className="absolute left-0 right-0 h-14 bg-amber-400/20 border-y-2 border-amber-500/40 pointer-events-none transition-all duration-75"
-                                    style={{ top: `${Math.max(0, rulerY - 28)}px` }}
+                                    className="absolute left-0 right-0 h-16 bg-amber-400/15 border-y-2 border-amber-400/40 pointer-events-none transition-all duration-75 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                                    style={{ top: `${Math.max(0, rulerY - 32)}px` }}
                                 />
                             )}
 
-                            {/* Metin Başlığı */}
-                            <div className="text-center mb-6">
-                                <h3 className={`font-diktemel text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide ${currentTheme.accent}`}>
+                            {/* Hikaye Başlığı */}
+                            <div className="text-center mb-6 sm:mb-8">
+                                <h3 className="font-diktemel text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide text-amber-300">
                                     {activeText.title}
                                 </h3>
-                                <div className="w-20 h-0.5 bg-amber-400/70 mx-auto mt-2 rounded-full" />
+                                <div className="w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mt-2 rounded-full" />
                             </div>
 
-                            {/* Özel Metin Girişi veya Standart Okuma Metni */}
+                            {/* Özel Metin Girişi veya Standart Kelime Kelime Metin */}
                             {isCustomMode ? (
                                 <div className="max-w-3xl mx-auto">
                                     <textarea
                                         value={customText}
                                         onChange={(e) => setCustomText(e.target.value)}
-                                        placeholder="Öğrencileriniz için buraya metin yazın veya yapıştırın..."
-                                        className="w-full h-72 p-5 bg-white/90 dark:bg-slate-800/90 border-2 border-dashed border-amber-300 dark:border-slate-700 rounded-2xl font-diktemel text-3xl leading-loose tracking-wide text-slate-800 dark:text-slate-100 outline-none focus:ring-3 focus:ring-amber-400/30 resize-none shadow-inner"
+                                        placeholder="Öğrencileriniz için buraya okuma metnini yazın veya yapıştırın..."
+                                        className="w-full h-72 p-5 bg-slate-850 border-2 border-dashed border-amber-500/40 rounded-2xl font-diktemel text-2xl sm:text-3xl leading-loose tracking-wide text-slate-100 outline-none focus:ring-3 focus:ring-amber-500/30 resize-none shadow-inner"
                                     />
+                                    <p className="text-xs text-slate-400 text-center mt-2">
+                                        Metni yazdıktan sonra yukarıdaki sayaç ile hızlı okuma egzersizini hemen başlatabilirsiniz.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="max-w-4xl mx-auto px-2 sm:px-6">
                                     <p 
                                         className={`font-diktemel ${['text-2xl', 'text-3xl', 'text-4xl', 'text-5xl'][fontSizeLevel]} leading-loose tracking-wide text-left`}
-                                        style={{ wordSpacing: '0.15em' }}
+                                        style={{ wordSpacing: '0.18em' }}
                                     >
                                         {words.map((word, index) => {
                                             const isRead = lastReadWordIndex !== null && index <= lastReadWordIndex;
@@ -536,16 +752,25 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                                                 <span
                                                     key={index}
                                                     onClick={() => handleWordClick(index)}
-                                                    className={`inline-block mr-2 px-1 rounded-md transition cursor-pointer hover:bg-amber-200/50 ${
+                                                    className={`inline-block mr-2 px-1.5 py-0.5 rounded-xl transition cursor-pointer relative group touch-manipulation ${
                                                         isCurrent 
-                                                            ? 'bg-amber-400 text-amber-950 font-bold scale-105 shadow-sm ring-2 ring-amber-500' 
+                                                            ? 'bg-amber-400 text-slate-950 font-black scale-110 shadow-lg ring-4 ring-amber-300/60 z-10' 
                                                             : isRead 
-                                                                ? 'text-emerald-700 dark:text-emerald-400 font-medium' 
-                                                                : ''
+                                                                ? 'text-emerald-300 bg-emerald-500/15 font-semibold border-b-2 border-emerald-400' 
+                                                                : isWaitingForMarking
+                                                                    ? 'hover:bg-amber-400/30 hover:scale-105 active:scale-95 text-slate-200 border-b border-dashed border-amber-400/50'
+                                                                    : 'hover:bg-white/10 active:scale-95 text-slate-100'
                                                     }`}
-                                                    title={`Kelime #${index + 1} - Kaldığınız yeri işaretlemek için tıklayın`}
+                                                    title={`Kelime #${index + 1} - Kaldığın yeri işaretlemek için dokun!`}
                                                 >
                                                     {word}
+                                                    {/* En son okunan kelime üzerine sevimli pin */}
+                                                    {isCurrent && (
+                                                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 font-sans text-[10px] font-black px-2 py-0.5 rounded-full shadow-md whitespace-nowrap animate-bounce flex items-center gap-0.5">
+                                                            <span>📍</span>
+                                                            <span>Kaldığın Yer</span>
+                                                        </span>
+                                                    )}
                                                 </span>
                                             );
                                         })}
@@ -554,49 +779,188 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                             )}
                         </div>
 
-                        {/* Alt Skor Alanı */}
-                        <footer className={`px-5 py-3 border-t flex flex-wrap items-center justify-between gap-3 ${currentTheme.footer}`}>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" />
-                                <span>1 dakika bittiğinde kaldığınız son kelimeye tıklayarak okuma hızınızı ölçün!</span>
+                        {/* --- ALT BİLGİ & HIZLI İLERLEME ÇUBUĞU --- */}
+                        <footer className="px-4 sm:px-6 py-2.5 bg-slate-850 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <span className={`w-2 h-2 rounded-full inline-block ${isRunning ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                                <span className="line-clamp-1">
+                                    {isWaitingForMarking 
+                                        ? '✨ Şimdi en son okuduğun kelimeye tıkla, başarı karnen hazırlansın!' 
+                                        : 'Süre bittiğinde kaldığın kelimeye tıklayarak okuma hızını hemen ölçebilirsin.'}
+                                </span>
                             </div>
 
+                            {/* Canlı Skor Özeti */}
                             {readWordsCount > 0 && (
-                                <motion.div 
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    className="flex items-center gap-2.5 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 border border-emerald-500/30 px-3.5 py-1 rounded-xl shadow-xs"
-                                >
-                                    <Award className="w-4 h-4 text-amber-500" />
+                                <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/15 to-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-xl shadow-xs">
+                                    <Trophy className="w-4 h-4 text-amber-400" />
                                     <div className="text-xs">
-                                        <span className="font-bold text-slate-800 dark:text-slate-100 mr-1">
+                                        <span className="font-bold text-white mr-1">
                                             {readWordsCount}
                                         </span>
-                                        <span>kelime okundu!</span>
-                                        {durationSeconds === 60 && (
-                                            <span className="ml-2 font-semibold text-emerald-600 dark:text-emerald-400">
-                                                (Hız: {readWordsCount} Kelime / Dk 🚀)
-                                            </span>
-                                        )}
+                                        <span className="text-slate-300">kelime</span>
+                                        <span className="ml-1.5 font-bold text-emerald-400">
+                                            ({wpm} WPM 🚀)
+                                        </span>
                                     </div>
-                                </motion.div>
+                                    <button 
+                                        onClick={() => setShowReportModal(true)}
+                                        className="ml-1 text-[11px] underline text-amber-300 font-bold hover:text-amber-200 cursor-pointer"
+                                    >
+                                        Karneni Gör
+                                    </button>
+                                </div>
                             )}
                         </footer>
+
+                        {/* ========================================================= */}
+                        {/* SEVİMLİ BAŞARI KARNESİ & ANALİZ MODALI                   */}
+                        {/* ========================================================= */}
+                        <AnimatePresence>
+                            {showReportModal && (
+                                <div className="absolute inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm">
+                                    <motion.div
+                                        initial={{ scale: 0.85, opacity: 0, y: 20 }}
+                                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                                        exit={{ scale: 0.85, opacity: 0, y: 20 }}
+                                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                                        className="relative w-full max-w-lg bg-gradient-to-b from-slate-850 to-slate-900 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden text-center"
+                                    >
+                                        {/* Üst Kapat Butonu */}
+                                        <button
+                                            onClick={() => setShowReportModal(false)}
+                                            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition cursor-pointer"
+                                            title="Kapat"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+
+                                        {/* Şenlik Başlığı */}
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30 text-3xl mb-2.5 animate-bounce">
+                                                {badge.emoji}
+                                            </div>
+                                            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                                                Tebrikler, Harika Okudun! 🎉
+                                            </h3>
+                                            <p className="text-xs text-amber-300 font-bold mt-0.5">
+                                                İşte senin sevimli okuma başarın ve karnen:
+                                            </p>
+                                        </div>
+
+                                        {/* 4'lü İstatistik Kartları Grid */}
+                                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 my-5">
+                                            {/* Kart 1: Okunan Kelime */}
+                                            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col items-center justify-center">
+                                                <span className="text-[11px] font-semibold text-slate-400">📖 Okunan Kelime</span>
+                                                <div className="text-xl sm:text-2xl font-black text-white mt-1">
+                                                    {readWordsCount}
+                                                    <span className="text-xs font-medium text-slate-400 ml-1">/ {words.length}</span>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-emerald-400 mt-0.5">
+                                                    %{completionPct} tamamlandı
+                                                </span>
+                                            </div>
+
+                                            {/* Kart 2: Okuma Hızı (WPM) */}
+                                            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col items-center justify-center">
+                                                <span className="text-[11px] font-semibold text-slate-400">⚡ Okuma Hızı</span>
+                                                <div className="text-xl sm:text-2xl font-black text-amber-400 mt-1">
+                                                    {wpm}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-amber-300 mt-0.5">
+                                                    Kelime / Dakika
+                                                </span>
+                                            </div>
+
+                                            {/* Kart 3: Geçen Süre */}
+                                            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col items-center justify-center">
+                                                <span className="text-[11px] font-semibold text-slate-400">⏱️ Okuma Süresi</span>
+                                                <div className="text-xl sm:text-2xl font-black text-indigo-300 mt-1">
+                                                    {effectiveSeconds}
+                                                    <span className="text-xs font-medium text-slate-400 ml-0.5">sn</span>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                                    {durationSeconds} saniyelik tur
+                                                </span>
+                                            </div>
+
+                                            {/* Kart 4: Maskot Rozeti & Yıldızlar */}
+                                            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 flex flex-col items-center justify-center">
+                                                <span className="text-[11px] font-semibold text-slate-400">🏆 Başarı Rozeti</span>
+                                                <div className="text-sm sm:text-base font-black text-orange-400 mt-1 flex items-center gap-1">
+                                                    <span>{badge.title}</span>
+                                                </div>
+                                                <div className="flex items-center gap-0.5 mt-0.5">
+                                                    {Array.from({ length: 3 }).map((_, i) => (
+                                                        <Star 
+                                                            key={i} 
+                                                            className={`w-3.5 h-3.5 ${i < badge.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`} 
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Maskot Özel Mesajı & Pedagojik İpucu */}
+                                        <div className={`p-3.5 rounded-2xl border ${badge.bgSoft} mb-5 text-left`}>
+                                            <div className="flex items-start gap-2.5">
+                                                <div className="text-2xl shrink-0 mt-0.5">{badge.emoji}</div>
+                                                <div>
+                                                    <div className="text-xs font-black text-white">
+                                                        {badge.subtitle}
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                                                        {badge.note}
+                                                    </p>
+                                                    <p className="text-[11px] text-amber-300/90 font-medium mt-1 pt-1 border-t border-white/10 leading-relaxed">
+                                                        💡 {pedagogicalTip}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Eylemler Buton Çubuğu */}
+                                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setShowReportModal(false);
+                                                    handleReset();
+                                                    setTimeout(() => setIsRunning(true), 100);
+                                                }}
+                                                className="w-full sm:flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition active:scale-95 cursor-pointer"
+                                            >
+                                                <RefreshCw className="w-4 h-4" />
+                                                <span>Tekrar Oku</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setShowReportModal(false)}
+                                                className="w-full sm:flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-700 transition active:scale-95 cursor-pointer"
+                                            >
+                                                <Eye className="w-4 h-4 text-emerald-400" />
+                                                <span>Metinde İncele</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 )}
 
-                {/* --- 3. SEKME 2: HARF & KELİME ÇALIŞMA ATÖLYESİ (NORMAL VS KILAVUZLU TOGGLE) --- */}
+                {/* --- 3. SEKME 2: HARF & KELİME ÇALIŞMA ATÖLYESİ --- */}
                 {activeTab === 'letters' && (
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        {/* Harf Çalışma Üst Barı: Dinamik Toggle (Normal vs Kılavuzlu Ok/Sayı) */}
-                        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b ${currentTheme.toolbar}`}>
-                            {/* Sol: Harf Grubu Seçimi */}
+                    <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+                        {/* Harf Çalışma Üst Barı: Dinamik Font Seçimi */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-6 py-3 bg-slate-850 border-b border-slate-800 shrink-0">
+                            {/* Harf Grubu Seçimi */}
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Harf Grubu:</span>
+                                <span className="text-xs font-semibold text-slate-300">Harf Grubu:</span>
                                 <select
                                     value={selectedGroupIndex}
                                     onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
-                                    className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-700 dark:text-slate-200 font-medium outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                    className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-medium outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                                 >
                                     {LETTER_GROUPS.map((g, idx) => (
                                         <option key={idx} value={idx}>
@@ -606,14 +970,14 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                                 </select>
                             </div>
 
-                            {/* ORTA: DİNAMİK FONT GEÇİŞ TOGGLE'I (KULLANICI TALEBİ) */}
-                            <div className="flex items-center gap-2 bg-indigo-50 dark:bg-slate-800/90 p-1 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 shadow-xs">
+                            {/* Dinamik Font Modu Toggle'ı */}
+                            <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-2xl border border-slate-700 shadow-xs">
                                 <button
                                     onClick={() => setFontMode('normal')}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                                         fontMode === 'normal'
-                                            ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm ring-1 ring-black/5'
-                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                            ? 'bg-slate-700 text-indigo-300 shadow-sm ring-1 ring-white/10'
+                                            : 'text-slate-400 hover:text-white'
                                     }`}
                                 >
                                     <Type className="w-3.5 h-3.5" />
@@ -625,104 +989,99 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                                         fontMode === 'kilavuzlu'
                                             ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400/50'
-                                            : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600'
+                                            : 'text-slate-400 hover:text-indigo-400'
                                     }`}
                                 >
                                     <PenTool className="w-3.5 h-3.5" />
-                                    <span>🎯 Kılavuzlu (Yazılış Yönü & Oklar)</span>
+                                    <span>🎯 Kılavuzlu (Yazılış Yönü)</span>
                                 </button>
                             </div>
 
-                            {/* Sağ: Harf Boyutu & Tahtaya Aktar */}
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-xs">
-                                    <button
-                                        onClick={() => setPracticeFontSize('text-5xl')}
-                                        className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-5xl' ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                                    >
-                                        Büyük
-                                    </button>
-                                    <button
-                                        onClick={() => setPracticeFontSize('text-6xl')}
-                                        className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-6xl' ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                                    >
-                                        Çok Büyük
-                                    </button>
-                                    <button
-                                        onClick={() => setPracticeFontSize('text-7xl')}
-                                        className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-7xl' ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300'}`}
-                                    >
-                                        Dev
-                                    </button>
-                                </div>
+                            {/* Harf Boyutu */}
+                            <div className="flex items-center gap-1 bg-slate-800 rounded-lg border border-slate-700 p-0.5 text-xs">
+                                <button
+                                    onClick={() => setPracticeFontSize('text-5xl')}
+                                    className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-5xl' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                                >
+                                    Büyük
+                                </button>
+                                <button
+                                    onClick={() => setPracticeFontSize('text-6xl')}
+                                    className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-6xl' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                                >
+                                    Çok Büyük
+                                </button>
+                                <button
+                                    onClick={() => setPracticeFontSize('text-7xl')}
+                                    className={`px-2 py-0.5 rounded font-semibold ${practiceFontSize === 'text-7xl' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                                >
+                                    Dev
+                                </button>
                             </div>
                         </div>
 
-                        {/* Harf Seçim Rozetleri (Hızlı Tıklama) */}
-                        <div className={`px-5 py-2.5 border-b flex flex-wrap items-center gap-2 ${currentTheme.toolbar}`}>
-                            <span className="text-xs font-semibold text-slate-500 mr-1">Hızlı Seçim:</span>
+                        {/* Hızlı Harf & Kelime Seçimi Rozetleri */}
+                        <div className="px-3 sm:px-6 py-2.5 bg-slate-850/80 border-b border-slate-800 flex flex-wrap items-center gap-2 shrink-0 overflow-x-auto">
+                            <span className="text-xs font-semibold text-slate-400 mr-1">Hızlı Harf:</span>
                             {LETTER_GROUPS[selectedGroupIndex].letters.map((l, i) => (
                                 <button
                                     key={i}
                                     onClick={() => setActivePracticeText(`${l} ${l} ${l}`)}
                                     className={`w-9 h-9 rounded-xl font-bold text-lg flex items-center justify-center border shadow-xs transition active:scale-95 cursor-pointer ${
                                         fontMode === 'kilavuzlu' ? 'font-diktemel-kilavuzlu' : 'font-diktemel-normal'
-                                    } bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600`}
+                                    } bg-slate-800 border-slate-700 hover:border-indigo-400 hover:text-indigo-400 text-slate-100`}
                                 >
                                     {l}
                                 </button>
                             ))}
 
-                            <div className="h-6 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
+                            <div className="h-6 w-[1px] bg-slate-700 mx-1 hidden sm:block" />
 
-                            <span className="text-xs font-semibold text-slate-500 mr-1">Örnek Kelimeler:</span>
+                            <span className="text-xs font-semibold text-slate-400 mr-1 hidden sm:inline">Örnek Kelimeler:</span>
                             {LETTER_GROUPS[selectedGroupIndex].samples.map((s, i) => (
                                 <button
                                     key={i}
                                     onClick={() => setActivePracticeText(s)}
                                     className={`px-3 py-1 rounded-xl text-sm font-semibold border shadow-xs transition active:scale-95 cursor-pointer ${
                                         fontMode === 'kilavuzlu' ? 'font-diktemel-kilavuzlu' : 'font-diktemel-normal'
-                                    } bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600`}
+                                    } bg-slate-800 border-slate-700 hover:border-indigo-400 hover:text-indigo-400 text-slate-100`}
                                 >
                                     {s}
                                 </button>
                             ))}
                         </div>
 
-                        {/* Ana Harf İnceleme ve Çalışma Tuvali */}
-                        <div className={`flex-1 overflow-y-auto p-6 sm:p-10 flex flex-col items-center justify-center relative ${currentTheme.content}`}>
-                            {/* Kılavuzlu / Normal Durum Bildirim Rozeti */}
+                        {/* Ana Harf İnceleme ve Çalışma Tahtası */}
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center relative bg-slate-900">
+                            {/* Rozet */}
                             <div className="mb-4 flex items-center gap-2">
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-xs ${
                                     fontMode === 'kilavuzlu'
-                                        ? 'bg-emerald-500 text-white ring-2 ring-emerald-300'
+                                        ? 'bg-emerald-500 text-white ring-2 ring-emerald-300/40'
                                         : 'bg-indigo-600 text-white'
                                 }`}>
                                     {fontMode === 'kilavuzlu' ? '🎯 Kılavuzlu Yazılış Yönü Modu Aktif' : '✏️ Standart Temiz Abece Modu Aktif'}
                                 </span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
-                                    (Metnin üzerine tıklayarak istediğiniz harfi veya kelimeyi serbestçe yazabilirsiniz)
-                                </span>
                             </div>
 
-                            {/* Devasa İlkokul Yazı Tahtası / Çalışma Kartı */}
-                            <div className="w-full max-w-4xl p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-800 shadow-xl border-2 border-indigo-100 dark:border-slate-700 relative text-center">
-                                {/* İlkokul Yazı Defteri Kılavuz Çizgileri */}
-                                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-20 border-y border-dashed border-indigo-200 dark:border-indigo-900/40 pointer-events-none" />
+                            {/* İlkokul Yazı Tahtası / Çalışma Kartı */}
+                            <div className="w-full max-w-4xl p-6 sm:p-12 rounded-3xl bg-slate-850 shadow-xl border-2 border-indigo-900/50 relative text-center">
+                                {/* İlkokul Defter Çizgileri */}
+                                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-20 border-y border-dashed border-indigo-500/20 pointer-events-none" />
 
                                 <input
                                     type="text"
                                     value={activePracticeText}
                                     onChange={(e) => setActivePracticeText(e.target.value)}
-                                    className={`w-full text-center bg-transparent border-none outline-none tracking-wider leading-loose text-slate-800 dark:text-slate-100 transition-all ${practiceFontSize} ${
+                                    className={`w-full text-center bg-transparent border-none outline-none tracking-wider leading-loose text-slate-100 transition-all ${practiceFontSize} ${
                                         fontMode === 'kilavuzlu' ? 'font-diktemel-kilavuzlu' : 'font-diktemel-normal'
                                     }`}
                                     placeholder="Buraya harf veya kelime yazın..."
                                 />
 
-                                <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
                                     <span>Aktif Font:</span>
-                                    <code className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                                    <code className="bg-slate-800 px-2 py-0.5 rounded font-mono text-indigo-400 font-bold border border-slate-700">
                                         {fontMode === 'kilavuzlu' ? 'TTKBDikTemel-Kilavuzlu' : 'TTKBDikTemel-Normal'}
                                     </code>
                                 </div>
@@ -730,9 +1089,9 @@ export default function ReadingScreen({ isOpen = true, onClose, onAddToCanvas })
                         </div>
 
                         {/* Alt Bilgi */}
-                        <footer className={`px-5 py-3 border-t flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 ${currentTheme.footer}`}>
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-amber-500" />
+                        <footer className="px-4 sm:px-6 py-2.5 bg-slate-850 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                                <Sparkles className="w-4 h-4 text-amber-400" />
                                 <span>İpucu: Kılavuzlu fontta harflerin yazılış yönlerini gösteren oklar ve başlangıç sayıları yer alır.</span>
                             </div>
                         </footer>

@@ -207,6 +207,7 @@ router.post('/admin', verifyToken, verifyAdmin, async (req, res) => {
             videoEmbedCode,
             badgeText,
             category,
+            subject,
             targetGrades,
             isActive,
             order,
@@ -244,6 +245,7 @@ router.post('/admin', verifyToken, verifyAdmin, async (req, res) => {
             videoEmbedCode: videoEmbedCode ? videoEmbedCode.trim() : '',
             badgeText: badgeText ? badgeText.trim() : 'Eklenti',
             category: category ? category.trim() : 'Tahta Araçları',
+            subject: subject ? subject.trim() : (category ? category.trim() : 'Türkçe'),
             targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
             features: Array.isArray(features) ? features : [],
             isActive: isActive !== false,
@@ -280,6 +282,7 @@ router.put('/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
             videoEmbedCode,
             badgeText,
             category,
+            subject,
             targetGrades,
             isActive,
             order,
@@ -307,6 +310,7 @@ router.put('/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
 
         if (badgeText !== undefined) moduleDoc.badgeText = badgeText.trim();
         if (category !== undefined) moduleDoc.category = category.trim();
+        if (subject !== undefined) moduleDoc.subject = subject.trim();
         if (targetGrades !== undefined) moduleDoc.targetGrades = Array.isArray(targetGrades) ? targetGrades : [];
         if (features !== undefined) moduleDoc.features = Array.isArray(features) ? features : [];
         if (isActive !== undefined) moduleDoc.isActive = !!isActive;

@@ -189,6 +189,37 @@ const INITIAL_BOARD_TOOLS_MODULE = {
   order: 5
 };
 
+const INITIAL_ENGLISH_MODULE = {
+  key: 'ingilizce-kelime-atolyesi',
+  title: 'İngilizce Kelime & Görsel Macera Atölyesi',
+  shortDescription: '2, 3, 4 ve 5. sınıflar için sesli görsel kartlar, dinleme ve eğlenceli kelime oyunları.',
+  longDescription: `İngilizce Görsel Macera Atölyesi, ilkokul ve ortaokul düzeyindeki öğrencilerin temel İngilizce kelime dağarcığını zenginleştiren, görsel kartlar, telaffuz ve dinleme oyunlarıyla yabancı dili sevdiren interaktif akıllı tahta aracıdır.
+
+### 🌟 Öne Çıkan Özellikler:
+- **7 Tematik Kategori:** Hayvanlar, Yiyecekler, Renkler & Şekiller, Sayılar, Giysiler, Okul & Sınıf, Hava Durumu.
+- **3D Çevrilebilir Görsel Kartlar:** Doğal telaffuz ve örnek cümleler ile kelime pekiştirme.
+- **Eğlenceli Oyun Modları:** Resim & Kelime Eşleştirme, Dinle & Bul (Listening), Harf Dizme ve Heceleme.
+- **Akıllı Tahta & Çizim Desteği:** Ders esnasında kelimelerin altını çizme ve not alma.`,
+  coverImage: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=1200&h=675&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=1200&h=675&q=80'
+  ],
+  videoUrl: '',
+  videoEmbedCode: '',
+  badgeText: 'İlkokul & Ortaokul',
+  category: 'Kelime & Telaffuz',
+  subject: 'İngilizce',
+  targetGrades: ['2', '3', '4', '5'],
+  features: [
+    'Görsel Sesli Kelime Kartları',
+    'Resim Eşleştirme Oyunu',
+    'Dinle ve Bul (Listening)',
+    'Harf Dizme ve Heceleme'
+  ],
+  isActive: true,
+  order: 6
+};
+
 // 60 Turkish realistic students (10 per class)
 const DEMO_STUDENTS_DATA = [
   // 1-A Sınıfı (İlkokul 1 - Doğum: 2017)
@@ -1036,7 +1067,8 @@ async function seedDemoData() {
       INITIAL_LETTER_WRITING_MODULE,
       INITIAL_MATH_MODULE,
       INITIAL_SCIENCE_MODULE,
-      INITIAL_BOARD_TOOLS_MODULE
+      INITIAL_BOARD_TOOLS_MODULE,
+      INITIAL_ENGLISH_MODULE
     ];
 
     for (const defMod of defaultModulesList) {

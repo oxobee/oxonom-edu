@@ -30,6 +30,7 @@ import ReadingScreen from '../components/ReadingScreen';
 import RhythmicCountingScreen from '../components/RhythmicCountingScreen';
 import SolarSystemScreen from '../components/SolarSystemScreen';
 import ClassroomToolsScreen from '../components/ClassroomToolsScreen';
+import EnglishAdventureScreen from '../components/EnglishAdventureScreen';
 import {
   PageHeader,
   Card,
@@ -84,6 +85,16 @@ const SUBJECT_DEFINITIONS = [
     colorBorder: 'border-amber-500/30 dark:border-amber-500/20',
     colorBg: 'bg-amber-500/5',
     colorText: 'text-amber-500 dark:text-amber-400'
+  },
+  {
+    key: 'ingilizce',
+    name: 'İngilizce (English)',
+    icon: '🇬🇧',
+    badgeVariant: 'secondary',
+    description: 'Sesli görsel kelime kartları, dinleme ve eğlenceli eşleştirme oyunları',
+    colorBorder: 'border-rose-500/30 dark:border-rose-500/20',
+    colorBg: 'bg-rose-500/5',
+    colorText: 'text-rose-500 dark:text-rose-400'
   }
 ];
 
@@ -91,6 +102,10 @@ const SUBJECT_DEFINITIONS = [
 function getModuleSubjectKey(mod) {
   const subj = (mod.subject || '').toLowerCase();
   const cat = (mod.category || '').toLowerCase();
+  const key = (mod.key || '').toLowerCase();
+  if (subj.includes('ing') || subj.includes('eng') || cat.includes('ing') || cat.includes('eng') || key.includes('ingilizce')) {
+    return 'ingilizce';
+  }
   if (subj.includes('türk') || cat.includes('okuma') || cat.includes('yaz') || cat.includes('harf') || cat.includes('abece')) {
     return 'turkce';
   }
@@ -231,7 +246,8 @@ const ModulesPage = () => {
       mod.key === '1-dk-okuma' ||
       mod.key === 'ritmik-sayma-atolyesi' ||
       mod.key === 'gunes-sistemi-atolyesi' ||
-      mod.key === 'sinif-carki-zamanlayici'
+      mod.key === 'sinif-carki-zamanlayici' ||
+      mod.key === 'ingilizce-kelime-atolyesi'
     ) {
       setRunningModules(prev => ({ ...prev, [mod.key]: true }));
     } else {
@@ -1212,6 +1228,13 @@ const ModulesPage = () => {
           <ClassroomToolsScreen
             isOpen={true}
             onClose={() => setRunningModules(prev => ({ ...prev, 'sinif-carki-zamanlayici': false }))}
+          />
+        )}
+
+        {runningModules['ingilizce-kelime-atolyesi'] && (
+          <EnglishAdventureScreen
+            isOpen={true}
+            onClose={() => setRunningModules(prev => ({ ...prev, 'ingilizce-kelime-atolyesi': false }))}
           />
         )}
       </div>

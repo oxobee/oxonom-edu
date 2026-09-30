@@ -43,30 +43,58 @@ function playPopSound() {
   playTone(450, 'triangle', 0.08, 0.08);
 }
 
-// İngilizce Doğal Seslendirme (Web Speech API - en-US / en-GB)
-function speakEnglishWord(text, rate = 0.9, onEnd) {
+// ==========================================
+// SES VE KONUŞMA MOTORU (Yerel MP3 + Google Audio Stream + Web Speech Fallback)
+// ==========================================
+let currentEnglishAudio = null;
+
+function stopEnglishAudio() {
+  if (currentEnglishAudio) {
+    try {
+      currentEnglishAudio.pause();
+      currentEnglishAudio.currentTime = 0;
+    } catch (_) {}
+    currentEnglishAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (_) {}
+  }
+}
+
+// Fallback: Web Speech API (Tarayıcı yerleşik motoru)
+function speakWithWebSpeech(text, rate = 0.9, onEnd) {
   if (!('speechSynthesis' in window)) {
     if (onEnd) onEnd();
     return;
   }
   try {
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.resume) {
+      window.speechSynthesis.resume();
+    }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
 
     const voices = window.speechSynthesis.getVoices();
-    // En kaliteli doğal İngilizce ses seçimi (Google US English, Samantha, Daniel, Natural vs.)
     const engVoice = voices.find(v => 
       (v.lang === 'en-US' || v.lang === 'en-GB' || v.lang?.startsWith('en')) &&
-      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Karen'))
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Karen') || v.name.includes('Ava'))
     ) || voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB' || v.lang?.startsWith('en'));
 
     if (engVoice) utterance.voice = engVoice;
     utterance.rate = rate;
     utterance.pitch = 1.0;
 
-    utterance.onend = () => { if (onEnd) onEnd(); };
-    utterance.onerror = () => { if (onEnd) onEnd(); };
+    let ended = false;
+    const safeEnd = () => {
+      if (ended) return;
+      ended = true;
+      if (onEnd) onEnd();
+    };
+
+    utterance.onend = safeEnd;
+    utterance.onerror = safeEnd;
 
     window.speechSynthesis.speak(utterance);
   } catch (_) {
@@ -74,8 +102,96 @@ function speakEnglishWord(text, rate = 0.9, onEnd) {
   }
 }
 
+// 1. Öncelik: /audio/english/${id}.mp3 (Pristine yerel dosya)
+// 2. Öncelik: Google Translate TTS Stream URL (Doğal akış)
+// 3. Öncelik: Web Speech API (Tarayıcı motoru)
+function playEnglishAudio(target, onStart, onEnd) {
+  stopEnglishAudio();
+
+  if (!target) {
+    if (onEnd) onEnd();
+    return;
+  }
+
+  if (onStart) onStart();
+
+  let wordId = '';
+  let text = '';
+
+  if (typeof target === 'object' && target !== null) {
+    wordId = (target.id || target.word || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    text = target.word || target.text || '';
+  } else if (typeof target === 'string') {
+    text = target;
+    wordId = target.toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  if (!text) {
+    if (onEnd) onEnd();
+    return;
+  }
+
+  let ended = false;
+  let safetyTimer = null;
+  const safeEnd = () => {
+    if (ended) return;
+    ended = true;
+    if (safetyTimer) clearTimeout(safetyTimer);
+    currentEnglishAudio = null;
+    if (onEnd) onEnd();
+  };
+
+  // Güvenlik zaman aşımı (en fazla 4 saniye)
+  safetyTimer = setTimeout(safeEnd, 4000);
+
+  // 1. Yerel MP3 dosyası dene
+  const localUrl = `/audio/english/${wordId}.mp3`;
+  try {
+    const audio = new Audio(localUrl);
+    audio.volume = 1.0;
+    currentEnglishAudio = audio;
+
+    audio.onended = safeEnd;
+    audio.onerror = () => {
+      // 2. Yerel dosya bulunamazsa Google TTS stream'i dene
+      const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encodeURIComponent(text)}`;
+      try {
+        const streamAudio = new Audio(streamUrl);
+        streamAudio.volume = 1.0;
+        currentEnglishAudio = streamAudio;
+        streamAudio.onended = safeEnd;
+        streamAudio.onerror = () => {
+          // 3. Web Speech API son kale
+          speakWithWebSpeech(text, 0.9, safeEnd);
+        };
+        const streamPromise = streamAudio.play();
+        if (streamPromise !== undefined) {
+          streamPromise.catch(() => {
+            speakWithWebSpeech(text, 0.9, safeEnd);
+          });
+        }
+      } catch (_) {
+        speakWithWebSpeech(text, 0.9, safeEnd);
+      }
+    };
+
+    const promise = audio.play();
+    if (promise !== undefined) {
+      promise.catch(() => {
+        audio.onerror();
+      });
+    }
+  } catch (_) {
+    speakWithWebSpeech(text, 0.9, safeEnd);
+  }
+}
+
+function speakEnglishWord(target, rate = 0.9, onEnd) {
+  playEnglishAudio(target, null, onEnd);
+}
+
 // ==========================================
-// MEB 2-5. SINIF İNGİLİZCE KELİME VERİTABANI
+// MEB 2-5. SINIF İNGİLİZCE KELİME VERİTABANI (7 TEMA - 64 KELİME)
 // ==========================================
 const VOCABULARY_THEMES = [
   {
@@ -100,7 +216,7 @@ const VOCABULARY_THEMES = [
   {
     id: 'food',
     name: 'Food & Drinks',
-    turkishName: 'Yiyecekler & İçecekler',
+    turkishName: 'Yiyecek & İçecek',
     icon: '🍎',
     color: 'from-rose-500 to-red-500',
     words: [
@@ -112,7 +228,8 @@ const VOCABULARY_THEMES = [
       { id: 'cheese', word: 'Cheese', meaning: 'Peynir', emoji: '🧀', sentence: 'Mice love yellow cheese.', trSentence: 'Fareler sarı peyniri sever.' },
       { id: 'water', word: 'Water', meaning: 'Su', emoji: '💧', sentence: 'Drink water every day.', trSentence: 'Her gün su için.' },
       { id: 'egg', word: 'Egg', meaning: 'Yumurta', emoji: '🥚', sentence: 'I eat an egg for breakfast.', trSentence: 'Kahvaltıda yumurta yerim.' },
-      { id: 'pizza', word: 'Pizza', meaning: 'Pizza', emoji: '🍕', sentence: 'Pizza is my favorite food.', trSentence: 'Pizza benim en sevdiğim yemektir.' }
+      { id: 'pizza', word: 'Pizza', meaning: 'Pizza', emoji: '🍕', sentence: 'Pizza is my favorite food.', trSentence: 'Pizza benim en sevdiğim yemektir.' },
+      { id: 'cake', word: 'Cake', meaning: 'Pasta / Kek', emoji: '🎂', sentence: 'The birthday cake is delicious.', trSentence: 'Doğum günü pastası çok lezzetli.' }
     ]
   },
   {
@@ -127,9 +244,47 @@ const VOCABULARY_THEMES = [
       { id: 'green', word: 'Green', meaning: 'Yeşil', emoji: '🟢', sentence: 'The grass is green.', trSentence: 'Çimenler yeşildir.' },
       { id: 'yellow', word: 'Yellow', meaning: 'Sarı', emoji: '🟡', sentence: 'The sun is bright yellow.', trSentence: 'Güneş parlak sarıdır.' },
       { id: 'purple', word: 'Purple', meaning: 'Mor', emoji: '🟣', sentence: 'Grapes are purple.', trSentence: 'Üzümler mordur.' },
+      { id: 'pink', word: 'Pink', meaning: 'Pembe', emoji: '🌸', sentence: 'Flamingos are pink.', trSentence: 'Flamingolar pembedir.' },
       { id: 'star', word: 'Star', meaning: 'Yıldız', emoji: '⭐', sentence: 'Look at the shiny star.', trSentence: 'Parlayan yıldıza bak.' },
       { id: 'circle', word: 'Circle', meaning: 'Daire', emoji: '⭕', sentence: 'A clock is a circle.', trSentence: 'Saat bir dairedir.' },
+      { id: 'triangle', word: 'Triangle', meaning: 'Üçgen', emoji: '🔺', sentence: 'A slice of pizza is a triangle.', trSentence: 'Bir dilim pizza üçgendir.' },
       { id: 'heart', word: 'Heart', meaning: 'Kalp', emoji: '❤️', sentence: 'A warm red heart.', trSentence: 'Sıcak kırmızı bir kalp.' }
+    ]
+  },
+  {
+    id: 'numbers',
+    name: 'Numbers',
+    turkishName: 'Sayılar (1-10)',
+    icon: '🔢',
+    color: 'from-cyan-500 to-blue-600',
+    words: [
+      { id: 'one', word: 'One', meaning: 'Bir', emoji: '1️⃣', sentence: 'I have one nose.', trSentence: 'Bir tane burnum var.' },
+      { id: 'two', word: 'Two', meaning: 'İki', emoji: '2️⃣', sentence: 'I have two eyes.', trSentence: 'İki gözüm var.' },
+      { id: 'three', word: 'Three', meaning: 'Üç', emoji: '3️⃣', sentence: 'A triangle has three sides.', trSentence: 'Üçgenin üç kenarı vardır.' },
+      { id: 'four', word: 'Four', meaning: 'Dört', emoji: '4️⃣', sentence: 'A car has four wheels.', trSentence: 'Bir arabanın dört tekerleği vardır.' },
+      { id: 'five', word: 'Five', meaning: 'Beş', emoji: '5️⃣', sentence: 'We have five fingers.', trSentence: 'Beş parmağımız var.' },
+      { id: 'six', word: 'Six', meaning: 'Altı', emoji: '6️⃣', sentence: 'An insect has six legs.', trSentence: 'Bir böceğin altı bacağı vardır.' },
+      { id: 'seven', word: 'Seven', meaning: 'Yedi', emoji: '7️⃣', sentence: 'There are seven days in a week.', trSentence: 'Bir haftada yedi gün vardır.' },
+      { id: 'eight', word: 'Eight', meaning: 'Sekiz', emoji: '8️⃣', sentence: 'An octopus has eight arms.', trSentence: 'Ahtapotun sekiz kolu vardır.' },
+      { id: 'nine', word: 'Nine', meaning: 'Dokuz', emoji: '9️⃣', sentence: 'Nine books are on the desk.', trSentence: 'Masada dokuz kitap var.' },
+      { id: 'ten', word: 'Ten', meaning: 'On', emoji: '🔟', sentence: 'Count up to ten.', trSentence: 'Ona kadar say.' }
+    ]
+  },
+  {
+    id: 'clothes',
+    name: 'Clothes',
+    turkishName: 'Giysiler',
+    icon: '👕',
+    color: 'from-violet-500 to-fuchsia-500',
+    words: [
+      { id: 'tshirt', word: 'T-Shirt', meaning: 'Tişört', emoji: '👕', sentence: 'I wear a white t-shirt.', trSentence: 'Beyaz bir tişört giyiyorum.' },
+      { id: 'pants', word: 'Pants', meaning: 'Pantolon', emoji: '👖', sentence: 'Blue pants look cool.', trSentence: 'Mavi pantolon havalı görünüyor.' },
+      { id: 'shoes', word: 'Shoes', meaning: 'Ayakkabı', emoji: '👟', sentence: 'Tie your running shoes.', trSentence: 'Koşu ayakkabılarını bağla.' },
+      { id: 'hat', word: 'Hat', meaning: 'Şapka', emoji: '🧢', sentence: 'Wear a hat in summer.', trSentence: 'Yazın şapka tak.' },
+      { id: 'dress', word: 'Dress', meaning: 'Elbise', emoji: '👗', sentence: 'She has a pretty dress.', trSentence: 'Onun güzel bir elbisesi var.' },
+      { id: 'jacket', word: 'Jacket', meaning: 'Ceket', emoji: '🧥', sentence: 'Put on your warm jacket.', trSentence: 'Sıcak ceketini giy.' },
+      { id: 'socks', word: 'Socks', meaning: 'Çorap', emoji: '🧦', sentence: 'My socks are warm.', trSentence: 'Çoraplarım sıcaktır.' },
+      { id: 'coat', word: 'Coat', meaning: 'Palto / Mont', emoji: '🧥', sentence: 'Wear a thick coat in winter.', trSentence: 'Kışın kalın bir palto giy.' }
     ]
   },
   {
@@ -143,13 +298,15 @@ const VOCABULARY_THEMES = [
       { id: 'book', word: 'Book', meaning: 'Kitap', emoji: '📚', sentence: 'Read an English book.', trSentence: 'İngilizce bir kitap oku.' },
       { id: 'bag', word: 'School Bag', meaning: 'Okul Çantası', emoji: '🎒', sentence: 'My bag is blue.', trSentence: 'Çantam mavidir.' },
       { id: 'ruler', word: 'Ruler', meaning: 'Cetvel', emoji: '📏', sentence: 'Draw lines with a ruler.', trSentence: 'Cetvelle çizgiler çiz.' },
-      { id: 'desk', word: 'Desk', meaning: 'Sıra / Çalışma Masası', emoji: '🪑', sentence: 'Sit at your desk.', trSentence: 'Sırana otur.' },
-      { id: 'scissors', word: 'Scissors', meaning: 'Makas', emoji: '✂️', sentence: 'Cut the paper with scissors.', trSentence: 'Kağıdı makasla kes.' }
+      { id: 'desk', word: 'Desk', meaning: 'Sıra / Masa', emoji: '🪑', sentence: 'Sit at your desk.', trSentence: 'Sırana otur.' },
+      { id: 'scissors', word: 'Scissors', meaning: 'Makas', emoji: '✂️', sentence: 'Cut the paper with scissors.', trSentence: 'Kağıdı makasla kes.' },
+      { id: 'eraser', word: 'Eraser', meaning: 'Silgi', emoji: '🧼', sentence: 'Erase mistakes with an eraser.', trSentence: 'Hataları silgiyle sil.' },
+      { id: 'teacher', word: 'Teacher', meaning: 'Öğretmen', emoji: '👩‍🏫', sentence: 'Listen to your teacher carefully.', trSentence: 'Öğretmenini dikkatle dinle.' }
     ]
   },
   {
     id: 'weather',
-    name: 'Weather & Mood',
+    name: 'Weather & Feelings',
     turkishName: 'Hava & Duygular',
     icon: '🌦️',
     color: 'from-sky-500 to-cyan-500',
@@ -157,8 +314,11 @@ const VOCABULARY_THEMES = [
       { id: 'sunny', word: 'Sunny', meaning: 'Güneşli', emoji: '☀️', sentence: 'It is a sunny day.', trSentence: 'Güneşli bir gün.' },
       { id: 'rainy', word: 'Rainy', meaning: 'Yağmurlu', emoji: '🌧️', sentence: 'Take your umbrella, it is rainy.', trSentence: 'Şemsiyeni al, hava yağmurlu.' },
       { id: 'snowy', word: 'Snowy', meaning: 'Karlı', emoji: '❄️', sentence: 'Let us make a snowman.', trSentence: 'Hadi kardan adam yapalım.' },
+      { id: 'windy', word: 'Windy', meaning: 'Rüzgarlı', emoji: '💨', sentence: 'The kite flies when it is windy.', trSentence: 'Hava rüzgarlıyken uçurtma uçar.' },
       { id: 'happy', word: 'Happy', meaning: 'Mutlu', emoji: '😊', sentence: 'I am very happy today.', trSentence: 'Bugün çok mutluyum.' },
-      { id: 'tired', word: 'Tired', meaning: 'Yorgun', emoji: '😴', sentence: 'He is tired after playing.', trSentence: 'Oyun oynadıktan sonra yorgun.' }
+      { id: 'sad', word: 'Sad', meaning: 'Üzgün', emoji: '😢', sentence: 'Do not be sad, smile!', trSentence: 'Üzülme, gülümse!' },
+      { id: 'tired', word: 'Tired', meaning: 'Yorgun', emoji: '😴', sentence: 'He is tired after playing.', trSentence: 'Oyun oynadıktan sonra yorgun.' },
+      { id: 'excited', word: 'Excited', meaning: 'Heyecanlı', emoji: '🤩', sentence: 'We are excited for the lesson.', trSentence: 'Ders için çok heyecanlıyız.' }
     ]
   }
 ];
@@ -170,6 +330,7 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
   // Pencere Durumu: 'normal', 'minimized', 'maximized'
   const [windowState, setWindowState] = useState('normal');
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isSpeakingWord, setIsSpeakingWord] = useState(false);
 
   // Seçili Tema
   const [selectedThemeId, setSelectedThemeId] = useState('animals');
@@ -191,21 +352,34 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
   useEffect(() => {
     setCardIndex(0);
     setIsFlipped(false);
+    stopEnglishAudio();
+    setIsSpeakingWord(false);
   }, [selectedThemeId]);
 
-  // Kart değiştiğinde seslendir (eğer ses açıksa)
-  const handleSpeakCurrentWord = () => {
-    if (!currentWord || !soundEnabled) return;
-    speakEnglishWord(currentWord.word);
+  // Kart değiştiğinde veya butona basıldığında seslendir
+  const handleSpeakCurrentWord = (overrideTarget) => {
+    const target = overrideTarget || (isFlipped ? currentWord.sentence : currentWord);
+    if (!target) return;
+    if (!soundEnabled) setSoundEnabled(true);
+    setIsSpeakingWord(true);
+    playEnglishAudio(
+      target,
+      () => setIsSpeakingWord(true),
+      () => setIsSpeakingWord(false)
+    );
   };
 
   const handleNextCard = () => {
+    stopEnglishAudio();
+    setIsSpeakingWord(false);
     setIsFlipped(false);
     setCardIndex(prev => (prev + 1) % currentTheme.words.length);
     if (soundEnabled) playPopSound();
   };
 
   const handlePrevCard = () => {
+    stopEnglishAudio();
+    setIsSpeakingWord(false);
     setIsFlipped(false);
     setCardIndex(prev => (prev - 1 + currentTheme.words.length) % currentTheme.words.length);
     if (soundEnabled) playPopSound();
@@ -219,7 +393,7 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
           const next = (prev + 1) % currentTheme.words.length;
           const word = currentTheme.words[next];
           if (soundEnabled && word) {
-            speakEnglishWord(word.word);
+            handleSpeakCurrentWord(word);
           }
           return next;
         });
@@ -267,7 +441,9 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
     if (soundEnabled) {
       playTone(500, 'sine', 0.08);
-      if (card.type === 'word') speakEnglishWord(card.originalWord);
+      if (card.type === 'word') {
+        playEnglishAudio({ id: card.id, word: card.originalWord });
+      }
     }
 
     const nextSelected = [...selectedCards, index];
@@ -279,7 +455,12 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
       if (card1.id === card2.id && card1.type !== card2.type) {
         // Doğru Eşleşme!
-        if (soundEnabled) playSuccessSound();
+        if (soundEnabled) {
+          playSuccessSound();
+          setTimeout(() => {
+            playEnglishAudio({ id: card1.id, word: card1.originalWord });
+          }, 280);
+        }
         setMatchedPairs(prev => new Set([...prev, card1.id]));
         setMatchScore(s => s + 20);
         setSelectedCards([]);
@@ -322,7 +503,8 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
     if (soundEnabled) {
       setTimeout(() => {
-        speakEnglishWord(target.word);
+        setIsSpeakingWord(true);
+        playEnglishAudio(target, () => setIsSpeakingWord(true), () => setIsSpeakingWord(false));
       }, 350);
     }
   };
@@ -392,7 +574,7 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
         setSpellerFeedback('correct');
         if (soundEnabled) {
           playSuccessSound();
-          setTimeout(() => speakEnglishWord(spellerWord.word), 350);
+          setTimeout(() => playEnglishAudio(spellerWord), 350);
         }
         setTimeout(() => {
           setSpellerIndex(prev => (prev + 1) % currentTheme.words.length);
@@ -523,7 +705,7 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
   useEffect(() => {
     return () => {
       unregisterModule('ingilizce-kelime-atolyesi');
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopEnglishAudio();
       clearInterval(autoPlayTimerRef.current);
     };
   }, [unregisterModule]);
@@ -847,12 +1029,16 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSpeakCurrentWord();
+                          handleSpeakCurrentWord(currentWord);
                         }}
-                        className="w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center shadow-md active:scale-95 transition"
+                        className={`w-9 h-9 rounded-full ${
+                          isSpeakingWord 
+                            ? 'bg-amber-500 scale-110 ring-4 ring-amber-400/50 animate-pulse text-white' 
+                            : 'bg-rose-500 hover:bg-rose-400 text-white'
+                        } flex items-center justify-center shadow-md active:scale-95 transition cursor-pointer`}
                         title="İngilizce Telaffuz Dinle"
                       >
-                        <Volume2 className="w-4 h-4" />
+                        <Volume2 className="w-5 h-5" />
                       </button>
                     </h3>
                   </div>
@@ -865,9 +1051,19 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
                     <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
                       {currentWord.meaning}
                     </h3>
-                    <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 text-xs text-slate-300 max-w-xs">
-                      <p className="font-semibold text-rose-300">"{currentWord.sentence}"</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">({currentWord.trSentence})</p>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSpeakCurrentWord(currentWord.sentence);
+                      }}
+                      className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 text-xs text-slate-300 max-w-xs cursor-pointer hover:border-rose-500/40 hover:bg-slate-900 transition group shadow-inner"
+                      title="Örnek cümleyi seslendir"
+                    >
+                      <div className="flex items-center justify-center gap-1.5 font-bold text-rose-300 group-hover:text-rose-200">
+                        <p>"{currentWord.sentence}"</p>
+                        <Volume2 className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1">({currentWord.trSentence})</p>
                     </div>
                   </div>
                 )}
@@ -878,12 +1074,14 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSpeakCurrentWord();
+                      handleSpeakCurrentWord(isFlipped ? currentWord.sentence : currentWord);
                     }}
-                    className="flex items-center gap-1.5 text-rose-400 hover:text-rose-300 font-bold"
+                    className={`flex items-center gap-1.5 font-bold transition ${
+                      isSpeakingWord ? 'text-amber-400 animate-pulse' : 'text-rose-400 hover:text-rose-300'
+                    }`}
                   >
                     <Volume2 className="w-4 h-4" />
-                    <span>Sesli Dinle</span>
+                    <span>{isSpeakingWord ? 'Ses Çalıyor...' : (isFlipped ? 'Cümleyi Dinle' : 'Sesli Dinle')}</span>
                   </button>
                   <span className="text-[11px] text-slate-400 font-mono">
                     {currentWord.word.toLowerCase()}
@@ -905,8 +1103,12 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
               <button
                 type="button"
-                onClick={handleSpeakCurrentWord}
-                className="p-3 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white transition active:scale-95 cursor-pointer shadow-lg shadow-rose-500/20"
+                onClick={() => handleSpeakCurrentWord(isFlipped ? currentWord.sentence : currentWord)}
+                className={`p-3 rounded-2xl ${
+                  isSpeakingWord 
+                    ? 'bg-amber-500 scale-110 ring-4 ring-amber-400/50 shadow-amber-500/30' 
+                    : 'bg-rose-500 hover:bg-rose-400 shadow-rose-500/20'
+                } text-white transition active:scale-95 cursor-pointer shadow-lg`}
                 title="Kelimeyi Dinle"
               >
                 <Volume2 className="w-5 h-5" />
@@ -1016,10 +1218,12 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
                   <button
                     type="button"
-                    onClick={() => speakEnglishWord(listenQuestion.target.word)}
-                    className="py-1.5 px-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition"
+                    onClick={() => playEnglishAudio(listenQuestion.target, () => setIsSpeakingWord(true), () => setIsSpeakingWord(false))}
+                    className={`py-1.5 px-3 rounded-xl ${
+                      isSpeakingWord ? 'bg-amber-500 text-white animate-pulse' : 'bg-rose-500 hover:bg-rose-400 text-white'
+                    } font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer`}
                   >
-                    <Volume2 className="w-4 h-4" /> Tekrar Dinle
+                    <Volume2 className="w-4 h-4" /> {isSpeakingWord ? 'Ses Çalıyor...' : 'Tekrar Dinle'}
                   </button>
                 </div>
 
@@ -1037,8 +1241,11 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
                 <div className="py-2">
                   <button
                     type="button"
-                    onClick={() => speakEnglishWord(listenQuestion.target.word)}
-                    className="w-20 h-20 rounded-full bg-gradient-to-tr from-rose-500 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-xl ring-8 ring-rose-500/20 hover:scale-105 active:scale-95 transition cursor-pointer"
+                    onClick={() => playEnglishAudio(listenQuestion.target, () => setIsSpeakingWord(true), () => setIsSpeakingWord(false))}
+                    className={`w-20 h-20 rounded-full bg-gradient-to-tr from-rose-500 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-xl ${
+                      isSpeakingWord ? 'ring-8 ring-amber-400/60 scale-105 animate-pulse' : 'ring-8 ring-rose-500/20 hover:scale-105'
+                    } active:scale-95 transition cursor-pointer`}
+                    title="Kelimeyi Dinle"
                   >
                     <Volume2 className="w-10 h-10" />
                   </button>
@@ -1095,10 +1302,12 @@ export default function EnglishAdventureScreen({ isOpen = true, onClose, onAddTo
 
                   <button
                     type="button"
-                    onClick={() => speakEnglishWord(spellerWord.word)}
-                    className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs flex items-center gap-1.5 transition"
+                    onClick={() => playEnglishAudio(spellerWord, () => setIsSpeakingWord(true), () => setIsSpeakingWord(false))}
+                    className={`py-1.5 px-3 rounded-xl ${
+                      isSpeakingWord ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-rose-400'
+                    } font-bold text-xs flex items-center gap-1.5 transition cursor-pointer`}
                   >
-                    <Volume2 className="w-4 h-4" /> Kelimeyi Dinle
+                    <Volume2 className="w-4 h-4" /> {isSpeakingWord ? 'Ses Çalıyor...' : 'Kelimeyi Dinle'}
                   </button>
                 </div>
 
